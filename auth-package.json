@@ -1,0 +1,15 @@
+{
+  "name": "tiktok-auth-server",
+  "version": "1.0.0",
+  "description": "Authentication Server for TikTok Bot",
+  "main": "auth-server.js",
+  "scripts": {
+    "start": "node auth-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
+    "cors": "^2.8.5"
+  }
+}
