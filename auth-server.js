@@ -258,7 +258,7 @@ app.post('/api/login', async (req, res) => {
             token: token,
             username: user.username,
             createdAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
             isActive: true
         });
         
@@ -301,7 +301,8 @@ app.get('/api/admin/users', requireAdmin, (req, res) => {
             username: user.username,
             email: user.email,
             createdAt: user.createdAt,
-            isActive: user.isActive
+            isActive: user.isActive,
+            isAdmin: user.username === ADMIN_CONFIG.username
         }));
         
         res.json({ success: true, users: safeUsers });
@@ -360,6 +361,31 @@ app.delete('/api/admin/keys/:key', requireAdmin, (req, res) => {
             }
         } else {
             res.json({ success: false, message: 'Key not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.post('/api/admin/users/:id/toggle', requireAdmin, (req, res) => {
+    try {
+        const { id } = req.params;
+        const users = readUsers();
+        const user = users.find(u => u.id === id);
+        
+        if (user) {
+            user.isActive = !user.isActive;
+            if (writeUsers(users)) {
+                res.json({ 
+                    success: true, 
+                    message: `User ${user.isActive ? 'activated' : 'deactivated'}`,
+                    user: user
+                });
+            } else {
+                res.json({ success: false, message: 'Failed to update user' });
+            }
+        } else {
+            res.json({ success: false, message: 'User not found' });
         }
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
