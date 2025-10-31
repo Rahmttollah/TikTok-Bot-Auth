@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👑 Admin Panel - Auth Server</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #8B5FBF;
+            --primary-dark: #6B46C1;
+            --primary-light: #9F7AEA;
+            --secondary: #D53F8C;
+            --dark: #1A202C;
+            --darker: #0F1419;
+            --light: #EDF2F7;
+            --success: #48BB78;
+            --danger: #F56565;
+            --warning: #ECC94B;
+            --info: #4299E1;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            color: var(--light);
+            animation: gradientShift 10s ease infinite;
+            background-size: 400% 400%;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(139, 95, 191, 0.3);
+        }
+        
+        .logo h1 {
+            font-size: 1.8em;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .admin-menu {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .btn-logout {
+            padding: 12px 24px;
+            background: rgba(245, 101, 101, 0.2);
+            color: var(--light);
+            border: 1px solid var(--danger);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .btn-logout:hover {
+            background: var(--danger);
+            transform: translateY(-2px);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        .admin-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .panel-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            color: var(--primary-light);
+            font-size: 1.3em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--primary-light);
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 15px;
+            background: rgba(45, 55, 72, 0.8);
+            border: 2px solid rgba(139, 95, 191, 0.3);
+            border-radius: 10px;
+            font-size: 16px;
+            color: var(--light);
+            transition: all 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            background: rgba(45, 55, 72, 1);
+        }
+        
+        .btn-generate {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-generate:hover {
+            transform: translateY(-3px);
+        }
+        
+        .btn-generate.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+        .key-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px dashed var(--primary-light);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+        
+        .key-value {
+            font-family: 'Courier New', monospace;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--primary-light);
+            margin: 15px 0;
+            word-break: break-all;
+        }
+        
+        .btn-copy {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--success), #38A169);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .btn-copy:hover {
+            transform: translateY(-2px);
+        }
+        
+        .users-list, .keys-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .user-item, .key-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .user-info, .key-info {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .user-email, .key-note {
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+        
+        .key-code {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: var(--primary-light);
+        }
+        
+        .key-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-used {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .status-unused {
+            background: var(--success);
+            color: white;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        .alert.success {
+            background: rgba(72, 187, 120, 0.2);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+        
+        .alert.error {
+            background: rgba(245, 101, 101, 0.2);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        
+        .main-controller-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .btn-controller {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--info), #3182CE);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-controller:hover {
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>👑 Admin Control Panel</h1>
+        </div>
+        <div class="admin-menu">
+            <span>Welcome, <strong>Admin</strong></span>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="admin-panel">
+            <!-- Key Generation Section -->
+            <div class="panel-section">
+                <div class="section-title">
+                    <i class="fas fa-key"></i>
+                    <h3>Generate Registration Keys</h3>
+                </div>
+                
+                <div class="form-group">
+                    <label for="keyNote">Key Note (Optional)</label>
+                    <input type="text" id="keyNote" placeholder="e.g., For VIP user">
+                </div>
+                
+                <button class="btn-generate" onclick="generateKey()" id="generateBtn">
+                    <i class="fas fa-plus"></i> Generate New Key
+                </button>
+                
+                <div class="key-display" id="keyDisplay">
+                    <h4>🎉 New Registration Key Generated</h4>
+                    <div class="key-value" id="generatedKey">XXXX-XXXX-XXXX</div>
+                    <button class="btn-copy" onclick="copyKey()">
+                        <i class="fas fa-copy"></i> Copy Key
+                    </button>
+                    <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                        Share this key with users for registration
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Users List Section -->
+            <div class="panel-section">
+                <div class="section-title">
+                    <i class="fas fa-users"></i>
+                    <h3>Registered Users</h3>
+                </div>
+                
+                <div class="users-list" id="usersList">
+                    <div style="text-align: center; opacity: 0.7; padding: 40px;">
+                        <i class="fas fa-users" style="font-size: 3em; margin-bottom: 15px;"></i>
+                        <p>Loading users...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Keys List Section -->
+        <div class="panel-section">
+            <div class="section-title">
+                <i class="fas fa-list"></i>
+                <h3>Generated Keys</h3>
+            </div>
+            
+            <div class="keys-list" id="keysList">
+                <div style="text-align: center; opacity: 0.7; padding: 40px;">
+                    <i class="fas fa-key" style="font-size: 3em; margin-bottom: 15px;"></i>
+                    <p>Loading keys...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="message"></div>
+        
+        <div class="main-controller-link">
+            <a href="https://tiktok-view-bot.up.railway.app/admin" class="btn-controller" target="_blank">
+                <i class="fas fa-cog"></i> Manage Bot Instances
+            </a>
+            <p style="margin-top: 10px; opacity: 0.7;">
+                Go to Main Controller to manage bot URLs and settings
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let authToken = '';
+        
+        // Check if user is admin
+        async function checkAdmin() {
+            try {
+                const response = await fetch('/api/admin/users');
+                if (!response.ok) {
+                    window.location.href = '/login';
+                    return;
+                }
+                loadUsers();
+                loadKeys();
+            } catch (error) {
+                window.location.href = '/login';
+            }
+        }
+        
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
+        
+        function setLoading(buttonId, isLoading) {
+            const btn = document.getElementById(buttonId);
+            if (isLoading) {
+                btn.classList.add('loading');
+                btn.innerHTML = '<i class="fas fa-spinner"></i> Generating...';
+            } else {
+                btn.classList.remove('loading');
+                btn.innerHTML = '<i class="fas fa-plus"></i> Generate New Key';
+            }
+        }
+        
+        async function generateKey() {
+            const note = document.getElementById('keyNote').value;
+            
+            setLoading('generateBtn', true);
+            
+            try {
+                const response = await fetch('/api/admin/generate-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ note: note })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('generatedKey').textContent = data.key;
+                    document.getElementById('keyDisplay').style.display = 'block';
+                    document.getElementById('keyNote').value = '';
+                    showMessage('Registration key generated successfully!', 'success');
+                    loadKeys();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error generating key: ' + error.message, 'error');
+            } finally {
+                setLoading('generateBtn', false);
+            }
+        }
+        
+        async function copyKey() {
+            const key = document.getElementById('generatedKey').textContent;
+            try {
+                await navigator.clipboard.writeText(key);
+                showMessage('Key copied to clipboard!', 'success');
+            } catch (error) {
+                showMessage('Failed to copy key', 'error');
+            }
+        }
+        
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users');
+                const data = await response.json();
+                
+                const usersList = document.getElementById('usersList');
+                
+                if (data.success && data.users.length > 0) {
+                    usersList.innerHTML = '';
+                    
+                    data.users.forEach(user => {
+                        const userItem = document.createElement('div');
+                        userItem.className = 'user-item';
+                        userItem.innerHTML = `
+                            <div class="user-info">
+                                <div class="user-name">${user.username}</div>
+                                <div class="user-email">${user.email}</div>
+                                <div class="user-meta">Joined: ${new Date(user.createdAt).toLocaleDateString()}</div>
+                            </div>
+                            <div class="user-status">
+                                <span class="key-status status-unused">Active</span>
+                            </div>
+                        `;
+                        usersList.appendChild(userItem);
+                    });
+                } else {
+                    usersList.innerHTML = `
+                        <div style="text-align: center; opacity: 0.7; padding: 40px;">
+                            <i class="fas fa-users" style="font-size: 3em; margin-bottom: 15px;"></i>
+                            <p>No users registered yet</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.log('Error loading users:', error);
+            }
+        }
+        
+        async function loadKeys() {
+            try {
+                const response = await fetch('/api/admin/keys');
+                const data = await response.json();
+                
+                const keysList = document.getElementById('keysList');
+                
+                if (data.success && data.keys.length > 0) {
+                    keysList.innerHTML = '';
+                    
+                    data.keys.forEach(key => {
+                        const keyItem = document.createElement('div');
+                        keyItem.className = 'key-item';
+                        keyItem.innerHTML = `
+                            <div class="key-info">
+                                <div class="key-code">${key.key}</div>
+                                <div class="key-note">${key.note} | Created: ${new Date(key.createdAt).toLocaleDateString()}</div>
+                                ${key.used ? `
+                                    <div class="key-meta">Used by: ${key.usedBy} on ${new Date(key.usedAt).toLocaleDateString()}</div>
+                                ` : ''}
+                            </div>
+                            <div class="key-status">
+                                <span class="key-status ${key.used ? 'status-used' : 'status-unused'}">
+                                    ${key.used ? 'USED' : 'UNUSED'}
+                                </span>
+                            </div>
+                        `;
+                        keysList.appendChild(keyItem);
+                    });
+                } else {
+                    keysList.innerHTML = `
+                        <div style="text-align: center; opacity: 0.7; padding: 40px;">
+                            <i class="fas fa-key" style="font-size: 3em; margin-bottom: 15px;"></i>
+                            <p>No keys generated yet</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.log('Error loading keys:', error);
+            }
+        }
+        
+        async function logout() {
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                window.location.href = '/login';
+            } catch (error) {
+                window.location.href = '/login';
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdmin();
+            showMessage('👑 Welcome to Admin Panel', 'success');
+        });
+    </script>
+</body>
+</html>
