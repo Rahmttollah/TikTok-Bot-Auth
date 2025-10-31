@@ -179,7 +179,9 @@ app.get('/dashboard', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Auth APIs
+// =============================
+// ✅ USER REGISTER API
+// =============================
 app.post('/api/register', async (req, res) => {
     try {
         const { username, email, password, registrationKey } = req.body;
@@ -188,7 +190,6 @@ app.post('/api/register', async (req, res) => {
             return res.json({ success: false, message: 'All fields are required' });
         }
 
-        // Validate registration key
         const keys = readRegistrationKeys();
         const validKey = keys.find(k => k.key === registrationKey && k.used === false);
         
@@ -197,12 +198,9 @@ app.post('/api/register', async (req, res) => {
         }
 
         const users = readUsers();
-        
-        // Check if username or email exists
         if (users.find(u => u.username === username)) {
             return res.json({ success: false, message: 'Username already exists' });
         }
-        
         if (users.find(u => u.email === email)) {
             return res.json({ success: false, message: 'Email already exists' });
         }
@@ -219,7 +217,6 @@ app.post('/api/register', async (req, res) => {
 
         users.push(newUser);
         
-        // Mark key as used
         validKey.used = true;
         validKey.usedBy = username;
         validKey.usedAt = new Date().toISOString();
@@ -235,6 +232,9 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
+// =============================
+// ✅ USER LOGIN API
+// =============================
 app.post('/api/login', async (req, res) => {
     try {
         const { username, password, rememberMe } = req.body;
@@ -250,7 +250,6 @@ app.post('/api/login', async (req, res) => {
             return res.json({ success: false, message: 'Invalid credentials' });
         }
 
-        // Generate access token for main controller
         const token = generateToken();
         const tokens = readTokens();
         
@@ -258,7 +257,7 @@ app.post('/api/login', async (req, res) => {
             token: token,
             username: user.username,
             createdAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             isActive: true
         });
         
@@ -286,16 +285,20 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// =============================
+// ✅ USER LOGOUT API
+// =============================
 app.post('/api/logout', (req, res) => {
     req.session.destroy();
     res.json({ success: true, message: 'Logout successful' });
 });
 
-// Admin APIs
+// =============================
+// ✅ ADMIN APIS
+// =============================
 app.get('/api/admin/users', requireAdmin, (req, res) => {
     try {
         const users = readUsers();
-        // Remove passwords from response
         const safeUsers = users.map(user => ({
             id: user.id,
             username: user.username,
@@ -304,7 +307,6 @@ app.get('/api/admin/users', requireAdmin, (req, res) => {
             isActive: user.isActive,
             isAdmin: user.username === ADMIN_CONFIG.username
         }));
-        
         res.json({ success: true, users: safeUsers });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
@@ -392,7 +394,35 @@ app.post('/api/admin/users/:id/toggle', requireAdmin, (req, res) => {
     }
 });
 
-// Token verification API (Main controller will call this)
+// =============================
+// ✅ USER INFO API (Added)
+// =============================
+app.get('/api/user-info', requireAuth, (req, res) => {
+    try {
+        const tokens = readTokens();
+        const userToken = tokens.find(t => 
+            t.username === req.session.user.username && 
+            t.isActive && 
+            new Date(t.expiresAt) > new Date()
+        );
+        
+        res.json({
+            success: true,
+            user: {
+                username: req.session.user.username,
+                email: req.session.user.email,
+                isAdmin: req.session.user.isAdmin
+            },
+            token: userToken ? userToken.token : null
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// =============================
+// ✅ TOKEN VERIFY API
+// =============================
 app.post('/api/verify-token', (req, res) => {
     try {
         const { token } = req.body;
@@ -422,25 +452,12 @@ app.post('/api/verify-token', (req, res) => {
     }
 });
 
-// Initialize server
+// =============================
+// ✅ INIT SERVER
+// =============================
 initializeFiles();
 
-// Create admin user if not exists
-const users = readUsers();
-if (!users.find(u => u.username === ADMIN_CONFIG.username)) {
-    bcrypt.hash(ADMIN_CONFIG.password, 10).then(hashedPassword => {
-        users.push({
-            id: 'admin',
-            username: ADMIN_CONFIG.username,
-            email: 'admin@system.com',
-            password: hashedPassword,
-            createdAt: new Date().toISOString(),
-            isActive: true
-        });
-        writeUsers(users);
-        console.log('👑 Admin user created');
-    });
-}
+
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔐 Auth Server running on port ${PORT}`);
