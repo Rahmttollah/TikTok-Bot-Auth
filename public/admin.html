@@ -85,6 +85,49 @@
             padding: 30px;
         }
         
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 15px;
+            backdrop-filter: blur(20px);
+        }
+        
+        .tab {
+            padding: 15px 25px;
+            background: transparent;
+            border: none;
+            color: var(--light);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        
+        .tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         .admin-panel {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -210,7 +253,7 @@
             transform: translateY(-2px);
         }
         
-        .users-section, .keys-section {
+        .users-section, .keys-section, .instances-section {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             padding: 30px;
@@ -226,12 +269,12 @@
             margin-bottom: 25px;
         }
         
-        .users-list, .keys-list {
+        .users-list, .keys-list, .instances-list {
             max-height: 400px;
             overflow-y: auto;
         }
         
-        .user-item, .key-item {
+        .user-item, .key-item, .instance-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -242,21 +285,22 @@
             border: 1px solid rgba(139, 95, 191, 0.2);
         }
         
-        .user-info, .key-info {
+        .user-info, .key-info, .instance-info {
             flex: 1;
         }
         
-        .user-name, .key-code {
+        .user-name, .key-code, .instance-url {
             font-weight: 600;
             margin-bottom: 5px;
+            color: var(--primary-light);
         }
         
-        .user-email, .key-meta {
+        .user-email, .key-meta, .instance-meta {
             font-size: 0.9em;
             opacity: 0.7;
         }
         
-        .key-status {
+        .key-status, .instance-status {
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 0.8em;
@@ -306,6 +350,18 @@
             color: var(--danger);
         }
         
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.7;
+        }
+        
+        .empty-state i {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
         .stats-overview {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -334,17 +390,22 @@
             font-size: 1em;
             opacity: 0.9;
         }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            opacity: 0.7;
+
+        .system-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
         }
-        
-        .empty-state i {
-            font-size: 3em;
-            margin-bottom: 15px;
-            opacity: 0.5;
+
+        .system-info h4 {
+            color: var(--primary-light);
+            margin-bottom: 10px;
+        }
+
+        .instance-url {
+            word-break: break-all;
         }
     </style>
 </head>
@@ -362,106 +423,170 @@
     </div>
     
     <div class="container">
+        <div class="system-info">
+            <h4><i class="fas fa-info-circle"></i> System Information</h4>
+            <div>Auth Server: <strong>Current Server</strong></div>
+            <div>Main Controller: <strong>https://tiktok-view-bot.up.railway.app</strong></div>
+            <div>Admin Access: <strong>Full System Control</strong></div>
+        </div>
+
         <div class="stats-overview">
             <div class="stat-card">
                 <div class="stat-number" id="totalUsers">0</div>
                 <div class="stat-label">Total Users</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="activeKeys">0</div>
-                <div class="stat-label">Active Keys</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="usedKeys">0</div>
-                <div class="stat-label">Used Keys</div>
-            </div>
-            <div class="stat-card">
                 <div class="stat-number" id="totalKeys">0</div>
-                <div class="stat-label">Total Keys</div>
+                <div class="stat-label">Registration Keys</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalInstances">0</div>
+                <div class="stat-label">Bot Instances</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeInstances">0</div>
+                <div class="stat-label">Active Instances</div>
             </div>
         </div>
-        
-        <div class="admin-panel">
-            <div class="panel-section">
-                <div class="section-title">
-                    <i class="fas fa-key"></i>
-                    <h2>Generate Registration Key</h2>
-                </div>
-                
-                <div class="form-group">
-                    <label for="keyNote">Key Note (Optional)</label>
-                    <input type="text" id="keyNote" placeholder="e.g., For VIP user">
-                </div>
-                
-                <button class="btn-primary" onclick="generateKey()" id="generateBtn">
-                    <i class="fas fa-plus"></i> Generate Key
-                </button>
-                
-                <div class="key-display" id="keyDisplay">
-                    <h3>🎉 Registration Key Generated!</h3>
-                    <div class="key-value" id="generatedKey">XXXX-XXXX-XXXX</div>
-                    <button class="btn-copy" onclick="copyKey()">
-                        <i class="fas fa-copy"></i> Copy Key
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('keys')">
+                <i class="fas fa-key"></i> Registration Keys
+            </button>
+            <button class="tab" onclick="showTab('users')">
+                <i class="fas fa-users"></i> Users
+            </button>
+            <button class="tab" onclick="showTab('instances')">
+                <i class="fas fa-server"></i> Bot Instances
+            </button>
+        </div>
+
+        <!-- Registration Keys Tab -->
+        <div id="keys-tab" class="tab-content active">
+            <div class="admin-panel">
+                <div class="panel-section">
+                    <div class="section-title">
+                        <i class="fas fa-key"></i>
+                        <h2>Generate Registration Key</h2>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="keyNote">Key Note (Optional)</label>
+                        <input type="text" id="keyNote" placeholder="e.g., For VIP user">
+                    </div>
+                    
+                    <button class="btn-primary" onclick="generateKey()" id="generateBtn">
+                        <i class="fas fa-plus"></i> Generate Key
                     </button>
-                    <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
-                        Share this key with users for registration
+                    
+                    <div class="key-display" id="keyDisplay">
+                        <h3>🎉 Registration Key Generated!</h3>
+                        <div class="key-value" id="generatedKey">XXXX-XXXX-XXXX</div>
+                        <button class="btn-copy" onclick="copyKey()">
+                            <i class="fas fa-copy"></i> Copy Key
+                        </button>
+                        <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                            Share this key with users for registration
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <div class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        <h2>Instructions</h2>
+                    </div>
+                    
+                    <div style="line-height: 1.6; opacity: 0.9;">
+                        <p><strong>1.</strong> Generate registration keys for new users</p>
+                        <p><strong>2.</strong> Users need these keys to create accounts</p>
+                        <p><strong>3.</strong> Each key can be used only once</p>
+                        <p><strong>4.</strong> Track key usage in the list below</p>
                     </div>
                 </div>
             </div>
             
-            <div class="panel-section">
-                <div class="section-title">
-                    <i class="fas fa-cog"></i>
-                    <h2>System Information</h2>
+            <div class="keys-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-key"></i> Registration Keys</h2>
+                    <span id="keysCount">0 keys</span>
                 </div>
                 
-                <div class="form-group">
-                    <label>Main Controller</label>
-                    <input type="text" value="https://tiktok-view-bot.up.railway.app" readonly>
-                </div>
-                
-                <div class="form-group">
-                    <label>Auth Server</label>
-                    <input type="text" value="Current Server" readonly>
-                </div>
-                
-                <div class="form-group">
-                    <label>Admin Account</label>
-                    <input type="text" value="admin" readonly>
-                </div>
-                
-                <button class="btn-primary" onclick="refreshData()">
-                    <i class="fas fa-sync-alt"></i> Refresh Data
-                </button>
-            </div>
-        </div>
-        
-        <div class="users-section">
-            <div class="section-header">
-                <h2><i class="fas fa-users"></i> Registered Users</h2>
-                <span id="usersCount">0 users</span>
-            </div>
-            
-            <div class="users-list" id="usersList">
-                <div class="empty-state">
-                    <i class="fas fa-users"></i>
-                    <h3>No Users Registered</h3>
-                    <p>Users will appear here after registration</p>
+                <div class="keys-list" id="keysList">
+                    <div class="empty-state">
+                        <i class="fas fa-key"></i>
+                        <h3>No Keys Generated</h3>
+                        <p>Generate your first registration key</p>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="keys-section">
-            <div class="section-header">
-                <h2><i class="fas fa-key"></i> Registration Keys</h2>
-                <span id="keysCount">0 keys</span>
+
+        <!-- Users Tab -->
+        <div id="users-tab" class="tab-content">
+            <div class="users-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-users"></i> Registered Users</h2>
+                    <span id="usersCount">0 users</span>
+                </div>
+                
+                <div class="users-list" id="usersList">
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h3>No Users Registered</h3>
+                        <p>Users will appear here after registration</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bot Instances Tab -->
+        <div id="instances-tab" class="tab-content">
+            <div class="admin-panel">
+                <div class="panel-section">
+                    <div class="section-title">
+                        <i class="fas fa-plus-circle"></i>
+                        <h2>Add Bot Instance</h2>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="instanceUrl">Bot Instance URL</label>
+                        <input type="url" id="instanceUrl" placeholder="https://your-bot-instance.railway.app" required>
+                    </div>
+                    
+                    <button class="btn-primary" onclick="addInstance()" id="addBtn">
+                        <i class="fas fa-plus"></i> Add Instance
+                    </button>
+                </div>
+                
+                <div class="panel-section">
+                    <div class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        <h2>Instructions</h2>
+                    </div>
+                    
+                    <div style="line-height: 1.6; opacity: 0.9;">
+                        <p><strong>1.</strong> Enter your bot instance URL</p>
+                        <p><strong>2.</strong> Example: https://tiktok-bot-1.railway.app</p>
+                        <p><strong>3.</strong> Bot must have /start, /stop, /status endpoints</p>
+                        <p><strong>4.</strong> Multiple instances can be added for more power</p>
+                        <p><strong>5.</strong> Instances will be available in main controller</p>
+                    </div>
+                </div>
             </div>
             
-            <div class="keys-list" id="keysList">
-                <div class="empty-state">
-                    <i class="fas fa-key"></i>
-                    <h3>No Keys Generated</h3>
-                    <p>Generate your first registration key</p>
+            <div class="instances-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-server"></i> Bot Instances</h2>
+                    <span id="instancesCount">0 instances</span>
+                </div>
+                
+                <div class="instances-list" id="instancesList">
+                    <div class="empty-state">
+                        <i class="fas fa-server"></i>
+                        <h3>No Bot Instances</h3>
+                        <p>Add your first bot instance to get started</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -470,6 +595,32 @@
     <div id="message"></div>
 
     <script>
+        let currentTab = 'keys';
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+            currentTab = tabName;
+            
+            // Load data for the tab
+            if (tabName === 'keys') {
+                loadKeys();
+            } else if (tabName === 'users') {
+                loadUsers();
+            } else if (tabName === 'instances') {
+                loadInstances();
+            }
+        }
+        
         function showMessage(message, type) {
             const messageDiv = document.getElementById('message');
             messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
@@ -482,13 +633,22 @@
             const btn = document.getElementById(buttonId);
             if (isLoading) {
                 btn.classList.add('loading');
-                btn.innerHTML = '<i class="fas fa-spinner"></i> Generating...';
+                if (buttonId === 'generateBtn') {
+                    btn.innerHTML = '<i class="fas fa-spinner"></i> Generating...';
+                } else if (buttonId === 'addBtn') {
+                    btn.innerHTML = '<i class="fas fa-spinner"></i> Adding...';
+                }
             } else {
                 btn.classList.remove('loading');
-                btn.innerHTML = '<i class="fas fa-plus"></i> Generate Key';
+                if (buttonId === 'generateBtn') {
+                    btn.innerHTML = '<i class="fas fa-plus"></i> Generate Key';
+                } else if (buttonId === 'addBtn') {
+                    btn.innerHTML = '<i class="fas fa-plus"></i> Add Instance';
+                }
             }
         }
         
+        // Registration Keys Functions
         async function generateKey() {
             const note = document.getElementById('keyNote').value;
             
@@ -526,49 +686,6 @@
                 showMessage('Key copied to clipboard!', 'success');
             } catch (error) {
                 showMessage('Failed to copy key', 'error');
-            }
-        }
-        
-        async function loadUsers() {
-            try {
-                const response = await fetch('/api/admin/users');
-                const data = await response.json();
-                
-                const usersList = document.getElementById('usersList');
-                document.getElementById('usersCount').textContent = `${data.users.length} users`;
-                
-                if (data.users.length === 0) {
-                    usersList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-users"></i>
-                            <h3>No Users Registered</h3>
-                            <p>Users will appear here after registration</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                usersList.innerHTML = '';
-                
-                data.users.forEach(user => {
-                    const userItem = document.createElement('div');
-                    userItem.className = 'user-item';
-                    userItem.innerHTML = `
-                        <div class="user-info">
-                            <div class="user-name">${user.username}</div>
-                            <div class="user-email">${user.email}</div>
-                            <div class="user-meta">Registered: ${new Date(user.createdAt).toLocaleDateString()}</div>
-                        </div>
-                        <div class="user-status">
-                            <span class="key-status ${user.isActive ? 'status-unused' : 'status-used'}">
-                                ${user.isActive ? 'ACTIVE' : 'INACTIVE'}
-                            </span>
-                        </div>
-                    `;
-                    usersList.appendChild(userItem);
-                });
-            } catch (error) {
-                console.log('Error loading users:', error);
             }
         }
         
@@ -647,23 +764,204 @@
             }
         }
         
+        // Users Functions
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users');
+                const data = await response.json();
+                
+                const usersList = document.getElementById('usersList');
+                document.getElementById('usersCount').textContent = `${data.users.length} users`;
+                
+                if (data.users.length === 0) {
+                    usersList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <h3>No Users Registered</h3>
+                            <p>Users will appear here after registration</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                usersList.innerHTML = '';
+                
+                data.users.forEach(user => {
+                    const userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+                    userItem.innerHTML = `
+                        <div class="user-info">
+                            <div class="user-name">${user.username}</div>
+                            <div class="user-email">${user.email}</div>
+                            <div class="user-meta">
+                                Registered: ${new Date(user.createdAt).toLocaleDateString()} | 
+                                Status: ${user.isActive ? 'Active' : 'Inactive'}
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <span class="key-status ${user.isActive ? 'status-unused' : 'status-used'}">
+                                ${user.isActive ? 'ACTIVE' : 'INACTIVE'}
+                            </span>
+                            <button class="btn-delete" onclick="toggleUser('${user.id}')" style="margin-left: 10px;">
+                                <i class="fas fa-power-off"></i> ${user.isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+                        </div>
+                    `;
+                    usersList.appendChild(userItem);
+                });
+            } catch (error) {
+                console.log('Error loading users:', error);
+            }
+        }
+        
+        async function toggleUser(userId) {
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/toggle`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    loadUsers();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error updating user: ' + error.message, 'error');
+            }
+        }
+        
+        // Bot Instances Functions
+        async function addInstance() {
+            const instanceUrl = document.getElementById('instanceUrl').value.trim();
+            
+            if (!instanceUrl) {
+                showMessage('Please enter bot instance URL', 'error');
+                return;
+            }
+            
+            // Basic URL validation
+            try {
+                new URL(instanceUrl);
+            } catch (error) {
+                showMessage('Please enter a valid URL', 'error');
+                return;
+            }
+            
+            setLoading('addBtn', true);
+            
+            try {
+                const response = await fetch('/api/admin/instances', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url: instanceUrl
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('✅ Bot instance added successfully!', 'success');
+                    document.getElementById('instanceUrl').value = '';
+                    loadInstances();
+                    updateStats();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error adding instance: ' + error.message, 'error');
+            } finally {
+                setLoading('addBtn', false);
+            }
+        }
+        
+        async function loadInstances() {
+            try {
+                const response = await fetch('/api/admin/instances');
+                const data = await response.json();
+                
+                const instancesList = document.getElementById('instancesList');
+                document.getElementById('instancesCount').textContent = `${data.instances.length} instances`;
+                
+                if (data.instances.length === 0) {
+                    instancesList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-server"></i>
+                            <h3>No Bot Instances</h3>
+                            <p>Add your first bot instance to get started</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                instancesList.innerHTML = '';
+                
+                data.instances.forEach(instance => {
+                    const instanceItem = document.createElement('div');
+                    instanceItem.className = 'instance-item';
+                    instanceItem.innerHTML = `
+                        <div class="instance-info">
+                            <div class="instance-url">${instance.url}</div>
+                            <div class="instance-meta">
+                                Added: ${new Date(instance.addedAt).toLocaleDateString()} | 
+                                ID: ${instance.id.substring(0, 8)}... |
+                                Status: ${instance.enabled ? 'Enabled' : 'Disabled'}
+                            </div>
+                        </div>
+                        <div class="instance-actions">
+                            <button class="btn-delete" onclick="deleteInstance('${instance.id}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    `;
+                    instancesList.appendChild(instanceItem);
+                });
+            } catch (error) {
+                console.log('Error loading instances:', error);
+                showMessage('Error loading instances', 'error');
+            }
+        }
+        
+        async function deleteInstance(instanceId) {
+            if (!confirm('Are you sure you want to delete this bot instance?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/instances/${instanceId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('✅ Bot instance deleted successfully!', 'success');
+                    loadInstances();
+                    updateStats();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error deleting instance: ' + error.message, 'error');
+            }
+        }
+        
+        // Stats Update
         function updateStats() {
-            // This would be updated when loading users and keys
+            // This will be updated when loading data
             const users = document.querySelectorAll('.user-item').length;
             const keys = document.querySelectorAll('.key-item').length;
-            const usedKeys = document.querySelectorAll('.status-used').length;
-            const activeKeys = keys - usedKeys;
+            const instances = document.querySelectorAll('.instance-item').length;
             
             document.getElementById('totalUsers').textContent = users;
             document.getElementById('totalKeys').textContent = keys;
-            document.getElementById('usedKeys').textContent = usedKeys;
-            document.getElementById('activeKeys').textContent = activeKeys;
-        }
-        
-        async function refreshData() {
-            await loadUsers();
-            await loadKeys();
-            showMessage('Data refreshed successfully!', 'success');
+            document.getElementById('totalInstances').textContent = instances;
+            document.getElementById('activeInstances').textContent = instances; // Assuming all active
         }
         
         async function logout() {
@@ -680,8 +978,8 @@
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            loadUsers();
             loadKeys();
+            updateStats();
             showMessage('👑 Welcome to Admin Panel!', 'success');
         });
     </script>
