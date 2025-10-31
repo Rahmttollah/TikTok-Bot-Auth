@@ -461,18 +461,17 @@ const users = readUsers();
 if (!users.find(u => u.username === ADMIN_CONFIG.username)) {
     bcrypt.hash(ADMIN_CONFIG.password, 10).then(hashedPassword => {
         users.push({
-            id: 'Rahmtollah',
+            id: 'Rahmttollah', // ye bas ek unique id hai
             username: ADMIN_CONFIG.username,
             email: 'rahmttollahn@gmail.com',
-            password: RIFAT6677,
+            password: hashedPassword, // hashed version store hoga
             createdAt: new Date().toISOString(),
             isActive: true
         });
         writeUsers(users);
-        console.log('👑 Admin user created');
+        console.log('👑 Admin user created automatically!');
     });
 }
-
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔐 Auth Server running on port ${PORT}`);
     console.log(`👑 Admin: ${ADMIN_CONFIG.username}`);
