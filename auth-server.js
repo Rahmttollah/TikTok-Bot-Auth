@@ -39,6 +39,7 @@ const ADMIN_CONFIG = {
 const usersFile = path.join(__dirname, 'users.json');
 const tokensFile = path.join(__dirname, 'tokens.json');
 const registrationKeysFile = path.join(__dirname, 'registration-keys.json');
+const instancesFile = path.join(__dirname, 'bot-instances.json');
 
 // Initialize files
 function initializeFiles() {
@@ -50,6 +51,9 @@ function initializeFiles() {
     }
     if (!fs.existsSync(registrationKeysFile)) {
         fs.writeFileSync(registrationKeysFile, JSON.stringify([], null, 2));
+    }
+    if (!fs.existsSync(instancesFile)) {
+        fs.writeFileSync(instancesFile, JSON.stringify([], null, 2));
     }
 }
 
@@ -105,6 +109,28 @@ function writeRegistrationKeys(keys) {
     }
 }
 
+// Bot instances functions
+function readBotInstances() {
+    try {
+        if (fs.existsSync(instancesFile)) {
+            return JSON.parse(fs.readFileSync(instancesFile, 'utf8'));
+        }
+    } catch (error) {
+        console.log('Error reading bot instances:', error);
+    }
+    return [];
+}
+
+function writeBotInstances(instances) {
+    try {
+        fs.writeFileSync(instancesFile, JSON.stringify(instances, null, 2));
+        return true;
+    } catch (error) {
+        console.log('Error writing bot instances:', error);
+        return false;
+    }
+}
+
 // Generate secure token
 function generateToken() {
     return crypto.randomBytes(32).toString('hex') + Date.now().toString();
@@ -134,6 +160,10 @@ function requireAdmin(req, res, next) {
     if (req.session.user && req.session.user.username === ADMIN_CONFIG.username) {
         next();
     } else {
+        // ✅ JSON response return karo for API routes
+        if (req.originalUrl.startsWith('/api/')) {
+            return res.status(403).json({ success: false, message: 'Admin access required' });
+        }
         res.redirect('/login');
     }
 }
@@ -144,7 +174,7 @@ app.get('/', (req, res) => {
         if (req.session.user.username === ADMIN_CONFIG.username) {
             res.redirect('/admin');
         } else {
-            res.redirect('/dashboard');
+            res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${getUserToken(req.session.user.username)}`);
         }
     } else {
         res.redirect('/login');
@@ -156,7 +186,7 @@ app.get('/login', (req, res) => {
         if (req.session.user.username === ADMIN_CONFIG.username) {
             res.redirect('/admin');
         } else {
-            res.redirect('/dashboard');
+            res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${getUserToken(req.session.user.username)}`);
         }
     } else {
         res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -165,7 +195,7 @@ app.get('/login', (req, res) => {
 
 app.get('/register', (req, res) => {
     if (req.session.user) {
-        res.redirect('/dashboard');
+        res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${getUserToken(req.session.user.username)}`);
     } else {
         res.sendFile(path.join(__dirname, 'public', 'register.html'));
     }
@@ -176,8 +206,15 @@ app.get('/admin', requireAdmin, (req, res) => {
 });
 
 app.get('/dashboard', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+    res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${getUserToken(req.session.user.username)}`);
 });
+
+// Helper function to get user token
+function getUserToken(username) {
+    const tokens = readTokens();
+    const userToken = tokens.find(t => t.username === username && t.isActive && new Date(t.expiresAt) > new Date());
+    return userToken ? userToken.token : '';
+}
 
 // =============================
 // ✅ USER REGISTER API
@@ -395,7 +432,85 @@ app.post('/api/admin/users/:id/toggle', requireAdmin, (req, res) => {
 });
 
 // =============================
-// ✅ USER INFO API (Added)
+// ✅ ADMIN BOT INSTANCES MANAGEMENT APIS - FIXED
+// =============================
+app.get('/api/admin/instances', requireAdmin, (req, res) => {
+    try {
+        const instances = readBotInstances();
+        res.json({ success: true, instances: instances });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.post('/api/admin/instances', requireAdmin, (req, res) => {
+    try {
+        const { url } = req.body;
+        
+        if (!url) {
+            return res.json({ success: false, message: 'URL required' });
+        }
+        
+        try {
+            new URL(url);
+        } catch (error) {
+            return res.json({ success: false, message: 'Invalid URL' });
+        }
+
+        const instances = readBotInstances();
+        
+        if (instances.find(inst => inst.url === url)) {
+            return res.json({ success: false, message: 'Instance already exists' });
+        }
+
+        const newInstance = { 
+            id: Date.now().toString(), 
+            url: url.trim(), 
+            addedAt: new Date().toISOString(), 
+            enabled: true 
+        };
+
+        instances.push(newInstance);
+        
+        if (writeBotInstances(instances)) {
+            res.json({ 
+                success: true, 
+                message: 'Bot instance added successfully',
+                instance: newInstance
+            });
+        } else {
+            res.json({ success: false, message: 'Failed to add instance' });
+        }
+    } catch (error) {
+        console.log('Error adding instance:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.delete('/api/admin/instances/:id', requireAdmin, (req, res) => {
+    try {
+        const { id } = req.params;
+        let instances = readBotInstances();
+        const initialLength = instances.length;
+        
+        instances = instances.filter(inst => inst.id !== id);
+        
+        if (instances.length < initialLength) {
+            if (writeBotInstances(instances)) {
+                res.json({ success: true, message: 'Bot instance deleted successfully' });
+            } else {
+                res.json({ success: false, message: 'Failed to delete instance' });
+            }
+        } else {
+            res.json({ success: false, message: 'Instance not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// =============================
+// ✅ USER INFO API
 // =============================
 app.get('/api/user-info', requireAuth, (req, res) => {
     try {
@@ -453,18 +568,49 @@ app.post('/api/verify-token', (req, res) => {
 });
 
 // =============================
+// ✅ GET BOT INSTANCES FOR MAIN CONTROLLER
+// =============================
+app.get('/api/bot-instances', (req, res) => {
+    try {
+        const token = req.query.token;
+        
+        if (!token) {
+            return res.json({ success: false, message: 'Token required' });
+        }
+
+        // Verify token
+        const tokens = readTokens();
+        const validToken = tokens.find(t => 
+            t.token === token && 
+            t.isActive && 
+            new Date(t.expiresAt) > new Date()
+        );
+
+        if (!validToken) {
+            return res.json({ success: false, message: 'Invalid token' });
+        }
+
+        const instances = readBotInstances();
+        res.json({ success: true, instances: instances });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// =============================
 // ✅ INIT SERVER
 // =============================
 initializeFiles();
 
+// Create admin user if not exists
 const users = readUsers();
 if (!users.find(u => u.username === ADMIN_CONFIG.username)) {
     bcrypt.hash(ADMIN_CONFIG.password, 10).then(hashedPassword => {
         users.push({
-            id: 'Rahmttollah', // ye bas ek unique id hai
+            id: 'admin',
             username: ADMIN_CONFIG.username,
             email: 'rahmttollahn@gmail.com',
-            password: hashedPassword, // hashed version store hoga
+            password: hashedPassword,
             createdAt: new Date().toISOString(),
             isActive: true
         });
@@ -472,8 +618,10 @@ if (!users.find(u => u.username === ADMIN_CONFIG.username)) {
         console.log('👑 Admin user created automatically!');
     });
 }
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔐 Auth Server running on port ${PORT}`);
     console.log(`👑 Admin: ${ADMIN_CONFIG.username}`);
     console.log(`🎯 Main Controller: ${MAIN_CONTROLLER_URL}`);
+    console.log(`🤖 Bot Instances Management: Enabled`);
 });
