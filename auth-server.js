@@ -17,7 +17,7 @@ app.use(express.static('public'));
 
 // Session middleware
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'auth-server-super-secret-2024',
+    secret: process.env.SESSION_SECRET || 'i-love-my-family-667788',
     resave: false,
     saveUninitialized: false,
     cookie: { 
@@ -31,8 +31,8 @@ const MAIN_CONTROLLER_URL = 'https://tiktok-view-bot.up.railway.app';
 
 // Admin Configuration
 const ADMIN_CONFIG = {
-    username: process.env.ADMIN_USERNAME || 'admin',
-    password: process.env.ADMIN_PASSWORD || 'admin123'
+    username: process.env.ADMIN_USERNAME || 'Rahmttollah',
+    password: process.env.ADMIN_PASSWORD || 'Rahmttollah6677'
 };
 
 // File paths
@@ -457,7 +457,21 @@ app.post('/api/verify-token', (req, res) => {
 // =============================
 initializeFiles();
 
-
+const users = readUsers();
+if (!users.find(u => u.username === ADMIN_CONFIG.username)) {
+    bcrypt.hash(ADMIN_CONFIG.password, 10).then(hashedPassword => {
+        users.push({
+            id: 'Rahmtollah',
+            username: ADMIN_CONFIG.username,
+            email: 'rahmttollahn@gmail.com',
+            password: RIFAT6677,
+            createdAt: new Date().toISOString(),
+            isActive: true
+        });
+        writeUsers(users);
+        console.log('👑 Admin user created');
+    });
+}
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔐 Auth Server running on port ${PORT}`);
