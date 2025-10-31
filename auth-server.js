@@ -126,7 +126,7 @@ function requireAuth(req, res, next) {
     if (req.session.user) {
         next();
     } else {
-        res.status(401).json({ success: false, message: 'Authentication required' });
+        res.redirect('/login');
     }
 }
 
@@ -134,21 +134,41 @@ function requireAdmin(req, res, next) {
     if (req.session.user && req.session.user.username === ADMIN_CONFIG.username) {
         next();
     } else {
-        res.status(403).json({ success: false, message: 'Admin access required' });
+        res.redirect('/login');
     }
 }
 
 // Routes
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    if (req.session.user) {
+        if (req.session.user.username === ADMIN_CONFIG.username) {
+            res.redirect('/admin');
+        } else {
+            res.redirect('/dashboard');
+        }
+    } else {
+        res.redirect('/login');
+    }
 });
 
 app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    if (req.session.user) {
+        if (req.session.user.username === ADMIN_CONFIG.username) {
+            res.redirect('/admin');
+        } else {
+            res.redirect('/dashboard');
+        }
+    } else {
+        res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    }
 });
 
 app.get('/register', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'register.html'));
+    if (req.session.user) {
+        res.redirect('/dashboard');
+    } else {
+        res.sendFile(path.join(__dirname, 'public', 'register.html'));
+    }
 });
 
 app.get('/admin', requireAdmin, (req, res) => {
@@ -156,15 +176,7 @@ app.get('/admin', requireAdmin, (req, res) => {
 });
 
 app.get('/dashboard', requireAuth, (req, res) => {
-    // Redirect to main controller with token
-    const tokens = readTokens();
-    const userToken = tokens.find(t => t.username === req.session.user.username && t.isActive);
-    
-    if (userToken) {
-        res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${userToken.token}`);
-    } else {
-        res.redirect('/login');
-    }
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 // Auth APIs
@@ -242,18 +254,11 @@ app.post('/api/login', async (req, res) => {
         const token = generateToken();
         const tokens = readTokens();
         
-        // Deactivate old tokens for this user
-        tokens.forEach(t => {
-            if (t.username === user.username) {
-                t.isActive = false;
-            }
-        });
-        
         tokens.push({
             token: token,
             username: user.username,
             createdAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             isActive: true
         });
         
@@ -273,7 +278,8 @@ app.post('/api/login', async (req, res) => {
             success: true, 
             message: 'Login successful',
             token: token,
-            redirectUrl: `${MAIN_CONTROLLER_URL}/dashboard?token=${token}`
+            isAdmin: user.username === ADMIN_CONFIG.username,
+            redirectUrl: user.username === ADMIN_CONFIG.username ? '/admin' : `${MAIN_CONTROLLER_URL}/dashboard?token=${token}`
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
@@ -281,17 +287,6 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
-    // Deactivate user's tokens
-    if (req.session.user) {
-        const tokens = readTokens();
-        tokens.forEach(t => {
-            if (t.username === req.session.user.username) {
-                t.isActive = false;
-            }
-        });
-        writeTokens(tokens);
-    }
-    
     req.session.destroy();
     res.json({ success: true, message: 'Logout successful' });
 });
@@ -349,22 +344,22 @@ app.get('/api/admin/keys', requireAdmin, (req, res) => {
     }
 });
 
-app.post('/api/admin/delete-user', requireAdmin, (req, res) => {
+app.delete('/api/admin/keys/:key', requireAdmin, (req, res) => {
     try {
-        const { userId } = req.body;
-        let users = readUsers();
-        const initialLength = users.length;
+        const { key } = req.params;
+        let keys = readRegistrationKeys();
+        const initialLength = keys.length;
         
-        users = users.filter(user => user.id !== userId);
+        keys = keys.filter(k => k.key !== key);
         
-        if (users.length < initialLength) {
-            if (writeUsers(users)) {
-                res.json({ success: true, message: 'User deleted successfully' });
+        if (keys.length < initialLength) {
+            if (writeRegistrationKeys(keys)) {
+                res.json({ success: true, message: 'Key deleted successfully' });
             } else {
-                res.json({ success: false, message: 'Failed to delete user' });
+                res.json({ success: false, message: 'Failed to delete key' });
             }
         } else {
-            res.json({ success: false, message: 'User not found' });
+            res.json({ success: false, message: 'Key not found' });
         }
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
@@ -388,14 +383,10 @@ app.post('/api/verify-token', (req, res) => {
         );
 
         if (validToken) {
-            const users = readUsers();
-            const user = users.find(u => u.username === validToken.username);
-            
             res.json({ 
                 success: true, 
                 valid: true, 
-                username: validToken.username,
-                isAdmin: validToken.username === ADMIN_CONFIG.username
+                username: validToken.username 
             });
         } else {
             res.json({ success: true, valid: false });
