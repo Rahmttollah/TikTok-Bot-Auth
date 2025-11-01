@@ -130,15 +130,17 @@ function writeBotInstances(instances) {
     }
 }
 
-// 🔥 BOT ALLOCATION SYSTEM
+// 🔥 ENHANCED BOT ALLOCATION SYSTEM
 function allocateBotsToUser(username) {
     const instances = readBotInstances();
     const users = readUsers();
     
-    // Get unused bots (not allocated to any user)
+    // Get unused bots (not allocated to any user AND enabled)
     const unusedBots = instances.filter(bot => 
         !bot.allocatedTo && bot.enabled
     );
+    
+    console.log(`🔄 Allocating bots for ${username}. Available: ${unusedBots.length}`);
     
     // If not enough bots, return empty
     if (unusedBots.length < 3) {
@@ -158,14 +160,46 @@ function allocateBotsToUser(username) {
         if (botIndex !== -1) {
             instances[botIndex].allocatedTo = username;
             instances[botIndex].allocatedAt = new Date().toISOString();
+            instances[botIndex].status = 'allocated';
         }
     }
     
     // Update instances file
     writeBotInstances(instances);
     
-    console.log(`✅ Allocated bots to ${username}:`, selectedBots);
+    console.log(`✅ Allocated ${selectedBots.length} bots to ${username}:`, selectedBots);
     return selectedBots;
+}
+
+// 🔥 GET BOT STATISTICS
+function getBotStatistics() {
+    const instances = readBotInstances();
+    const users = readUsers();
+    
+    const totalBots = instances.length;
+    const enabledBots = instances.filter(bot => bot.enabled).length;
+    const allocatedBots = instances.filter(bot => bot.allocatedTo).length;
+    const availableBots = instances.filter(bot => !bot.allocatedTo && bot.enabled).length;
+    const offlineBots = instances.filter(bot => !bot.enabled).length;
+    
+    // Bot usage details
+    const botUsage = instances.map(bot => ({
+        id: bot.id,
+        url: bot.url,
+        status: bot.enabled ? 'online' : 'offline',
+        allocatedTo: bot.allocatedTo,
+        allocatedAt: bot.allocatedAt,
+        isUsed: !!bot.allocatedTo
+    }));
+    
+    return {
+        totalBots,
+        enabledBots,
+        allocatedBots,
+        availableBots,
+        offlineBots,
+        botUsage
+    };
 }
 
 // Generate secure token
@@ -605,6 +639,125 @@ app.post('/api/admin/users/:userId/bots', requireAdmin, (req, res) => {
     }
 });
 
+// =============================
+// ✅ MANAGE USER BOTS API
+// =============================
+app.post('/api/admin/users/:userId/manage-bots', requireAdmin, (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { action, botId } = req.body;
+        
+        const users = readUsers();
+        const instances = readBotInstances();
+        const user = users.find(u => u.id === userId);
+        
+        if (!user) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+
+        if (!user.allocatedBots) user.allocatedBots = [];
+
+        if (action === 'add_bot') {
+            // Find available bot
+            const availableBot = instances.find(bot => 
+                !bot.allocatedTo && bot.enabled
+            );
+            
+            if (!availableBot) {
+                return res.json({ success: false, message: 'No available bots. Add more bot instances first.' });
+            }
+
+            // Add to user
+            user.allocatedBots.push(availableBot.id);
+            
+            // Update bot allocation
+            const botIndex = instances.findIndex(bot => bot.id === availableBot.id);
+            instances[botIndex].allocatedTo = user.username;
+            instances[botIndex].allocatedAt = new Date().toISOString();
+
+            if (writeUsers(users) && writeBotInstances(instances)) {
+                res.json({ 
+                    success: true, 
+                    message: `Bot allocated to ${user.username}`,
+                    allocatedBots: user.allocatedBots
+                });
+            }
+
+        } else if (action === 'remove_bot' && botId) {
+            // Remove from user
+            user.allocatedBots = user.allocatedBots.filter(bot => bot !== botId);
+            
+            // Free the bot
+            const botIndex = instances.findIndex(bot => bot.id === botId);
+            if (botIndex !== -1) {
+                instances[botIndex].allocatedTo = null;
+                instances[botIndex].allocatedAt = null;
+            }
+
+            if (writeUsers(users) && writeBotInstances(instances)) {
+                res.json({ 
+                    success: true, 
+                    message: `Bot removed from ${user.username}`,
+                    allocatedBots: user.allocatedBots
+                });
+            }
+        } else {
+            res.json({ success: false, message: 'Invalid action' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// =============================
+// ✅ GET BOT STATISTICS API
+// =============================
+app.get('/api/admin/bot-statistics', requireAdmin, (req, res) => {
+    try {
+        const stats = getBotStatistics();
+        res.json({ success: true, statistics: stats });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// =============================
+// ✅ GET USER BOT DETAILS API
+// =============================
+app.get('/api/admin/users/:userId/bot-details', requireAdmin, (req, res) => {
+    try {
+        const { userId } = req.params;
+        const users = readUsers();
+        const instances = readBotInstances();
+        
+        const user = users.find(u => u.id === userId);
+        if (!user) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+
+        const userBots = instances.filter(instance => 
+            user.allocatedBots?.includes(instance.id)
+        );
+
+        const availableBots = instances.filter(bot => 
+            !bot.allocatedTo && bot.enabled
+        );
+
+        res.json({
+            success: true,
+            user: {
+                username: user.username,
+                allocatedBots: user.allocatedBots || []
+            },
+            userBots: userBots,
+            availableBots: availableBots,
+            totalAllocated: userBots.length
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 app.post('/api/admin/generate-key', requireAdmin, (req, res) => {
     try {
         const { note } = req.body;
@@ -936,4 +1089,6 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🎯 Main Controller: ${MAIN_CONTROLLER_URL}`);
     console.log(`🤖 Bot Allocation System: Enabled`);
     console.log(`🚀 Smart Dashboard: Active`);
+    console.log(`📊 Bot Statistics API: Available`);
+    console.log(`🔧 Bot Management API: Enhanced`);
 });
