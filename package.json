@@ -1,22 +1,24 @@
 {
-  "name": "tiktok-main-controller",
+  "name": "tiktok-bot-auth",
   "version": "2.0.0",
-  "description": "Enhanced Main Controller with Mobile Support & Fixed Logout System",
-  "main": "main-controller.js",
+  "description": "Enhanced Authentication Server with Super Admin & Bot Allocation System",
+  "main": "auth-server.js",
   "scripts": {
-    "start": "node main-controller.js",
-    "dev": "nodemon main-controller.js"
+    "start": "node auth-server.js",
+    "dev": "nodemon auth-server.js"
   },
   "dependencies": {
     "express": "^4.18.0",
-    "axios": "^1.6.0"
+    "express-session": "^1.17.3",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5"
   },
   "keywords": [
     "tiktok",
     "bot",
-    "controller",
-    "dashboard",
-    "mobile"
+    "authentication",
+    "admin",
+    "dashboard"
   ],
   "author": "NAIMUL HACKER KING",
   "license": "MIT",
