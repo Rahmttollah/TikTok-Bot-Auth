@@ -421,18 +421,51 @@
             }
         });
         
-        // Check if already logged in
+        // ✅ FIXED: Simple session check without auto-reload
         async function checkLoginStatus() {
             try {
+                // Check if we have a token in localStorage
                 const token = localStorage.getItem('userToken');
                 if (token) {
-                    const response = await fetch('/api/auth-dashboard');
-                    if (response.ok) {
+                    // Verify token with server
+                    const response = await fetch('/api/verify-token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: token })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success && data.valid) {
+                        // Token is valid, redirect to dashboard
                         window.location.href = '/dashboard';
+                        return;
+                    } else {
+                        // Token is invalid, remove it
+                        localStorage.removeItem('userToken');
                     }
                 }
+                
+                // Additional check: try to access auth dashboard
+                try {
+                    const dashboardResponse = await fetch('/api/auth-dashboard', {
+                        credentials: 'include' // Include cookies for session check
+                    });
+                    
+                    if (dashboardResponse.ok) {
+                        const dashboardData = await dashboardResponse.json();
+                        if (dashboardData.success) {
+                            // User is logged in via session, redirect to dashboard
+                            window.location.href = '/dashboard';
+                        }
+                    }
+                } catch (error) {
+                    // User is not logged in, stay on login page
+                    console.log('User not logged in, showing login page');
+                }
             } catch (error) {
-                // User not logged in, stay on login page
+                // Any error means user should stay on login page
+                console.log('Login check failed, showing login page');
             }
         }
         
@@ -450,8 +483,8 @@
             });
         });
         
-        // Check login status on page load
-        setTimeout(checkLoginStatus, 1000);
+        // Check login status on page load (with delay to avoid immediate redirect)
+        setTimeout(checkLoginStatus, 500);
     </script>
 </body>
 </html>
