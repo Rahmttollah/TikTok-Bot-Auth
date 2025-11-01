@@ -331,6 +331,15 @@
             opacity: 0.7;
             text-align: center;
         }
+
+        .allocation-info {
+            background: rgba(72, 187, 120, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--success);
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -375,6 +384,10 @@
                     <input type="text" id="registrationKey" placeholder="Enter registration key (XXXX-XXXX-XXXX)" required pattern="[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}">
                     <div class="key-format">Format: XXXX-XXXX-XXXX (Uppercase letters & numbers)</div>
                 </div>
+            </div>
+
+            <div class="allocation-info">
+                <i class="fas fa-robot"></i> <strong>Bot Allocation:</strong> You will receive 3 dedicated bot instances upon registration
             </div>
             
             <button type="submit" class="btn-register" id="registerBtn">
@@ -513,7 +526,7 @@
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({ 
                         username: username.trim(),
@@ -526,7 +539,7 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showMessage('🎉 Account created successfully! Redirecting to login...', 'success');
+                    showMessage(`🎉 Account created successfully! ${data.allocatedBots} bots allocated. Redirecting to login...`, 'success');
                     setTimeout(() => {
                         window.location.href = '/login?message=registration_success';
                     }, 2000);
