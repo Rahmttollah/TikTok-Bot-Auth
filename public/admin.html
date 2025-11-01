@@ -1072,16 +1072,18 @@
             }
         }
         
-        // Bot Management Functions
+        // ✅ FIXED BOT MANAGEMENT MODAL
         async function manageUserBots(userId, username) {
             try {
+                showMessage('Loading bot details...', 'info');
+                
                 const response = await fetch(`/api/admin/users/${userId}/bot-details`);
                 const data = await response.json();
                 
                 if (data.success) {
                     showBotManagementModal(userId, username, data);
                 } else {
-                    showMessage('Error loading bot details', 'error');
+                    showMessage('Error loading bot details: ' + data.message, 'error');
                 }
             } catch (error) {
                 showMessage('Error: ' + error.message, 'error');
@@ -1102,42 +1104,61 @@
                         ${data.userBots.length > 0 ? 
                             data.userBots.map(bot => `
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; margin: 5px 0;">
-                                    <div>
-                                        <div style="font-weight: bold;">${bot.url}</div>
-                                        <div style="font-size: 0.8em; opacity: 0.7;">ID: ${bot.id.substring(0, 8)}...</div>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: bold; font-size: 0.9em;">${bot.url}</div>
+                                        <div style="font-size: 0.7em; opacity: 0.7;">ID: ${bot.id.substring(0, 8)}... | Status: ${bot.enabled ? '✅ Online' : '❌ Offline'}</div>
                                     </div>
-                                    <button onclick="removeBotFromUser('${userId}', '${bot.id}')" style="background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Remove</button>
+                                    <button onclick="removeBotFromUser('${userId}', '${bot.id}', '${username}')" 
+                                            style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 0.8em;">
+                                        🗑️ Remove
+                                    </button>
                                 </div>
                             `).join('') :
-                            '<p style="text-align: center; opacity: 0.7;">No bots allocated</p>'
+                            '<p style="text-align: center; opacity: 0.7; padding: 20px;">No bots allocated to this user</p>'
                         }
                     </div>
                 </div>
                 
-                <div style="margin-bottom: 20px;">
-                    <h4>🆕 Available Bots: ${data.availableBots.length}</h4>
-                    <div style="max-height: 150px; overflow-y: auto; margin: 10px 0;">
-                        ${data.availableBots.length > 0 ? 
-                            data.availableBots.map(bot => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px; margin: 3px 0;">
-                                    <div style="font-size: 0.9em;">${bot.url}</div>
-                                    <button onclick="addBotToUser('${userId}', '${bot.id}')" style="background: var(--success); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Add</button>
-                                </div>
-                            `).join('') :
-                            '<p style="text-align: center; opacity: 0.7; font-size: 0.9em;">No available bots</p>'
-                        }
+                ${data.userBots.length < 3 ? `
+                    <div style="margin-bottom: 20px;">
+                        <h4>🆕 Available Bots: ${data.availableBots.length}</h4>
+                        <div style="max-height: 150px; overflow-y: auto; margin: 10px 0;">
+                            ${data.availableBots.length > 0 ? 
+                                data.availableBots.map(bot => `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px; margin: 3px 0;">
+                                        <div style="font-size: 0.8em; flex: 1;">${bot.url}</div>
+                                        <button onclick="addBotToUser('${userId}', '${bot.id}', '${username}')" 
+                                                style="background: var(--success); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.7em;">
+                                            ➕ Add
+                                        </button>
+                                    </div>
+                                `).join('') :
+                                '<p style="text-align: center; opacity: 0.7; font-size: 0.8em; padding: 10px;">No available bots. Add more bot instances first.</p>'
+                            }
+                        </div>
                     </div>
-                </div>
+                ` : '<p style="text-align: center; color: var(--warning);">User has maximum 3 bots</p>'}
                 
-                <div style="text-align: center; margin-top: 20px;">
-                    <button onclick="closeBotModal()" style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Close</button>
+                <div style="text-align: center; margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="refreshBotModal('${userId}', '${username}')" 
+                            style="background: var(--info); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                        🔄 Refresh
+                    </button>
+                    <button onclick="closeBotModal()" 
+                            style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                        ✅ Close
+                    </button>
                 </div>
             `;
             
             modal.style.display = 'flex';
         }
 
-        async function addBotToUser(userId, botId) {
+        async function refreshBotModal(userId, username) {
+            await manageUserBots(userId, username);
+        }
+
+        async function addBotToUser(userId, botId, username) {
             try {
                 const response = await fetch(`/api/admin/users/${userId}/manage-bots`, {
                     method: 'POST',
@@ -1148,19 +1169,19 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showMessage('Bot added successfully!', 'success');
-                    closeBotModal();
+                    showMessage(`✅ Bot added to ${username}!`, 'success');
+                    await refreshBotModal(userId, username); // Refresh the modal
                     loadUsers(); // Refresh user list
                 } else {
-                    showMessage(data.message, 'error');
+                    showMessage('❌ ' + data.message, 'error');
                 }
             } catch (error) {
-                showMessage('Error: ' + error.message, 'error');
+                showMessage('❌ Error: ' + error.message, 'error');
             }
         }
 
-        async function removeBotFromUser(userId, botId) {
-            if (!confirm('Are you sure you want to remove this bot?')) return;
+        async function removeBotFromUser(userId, botId, username) {
+            if (!confirm(`Are you sure you want to remove this bot from ${username}?`)) return;
             
             try {
                 const response = await fetch(`/api/admin/users/${userId}/manage-bots`, {
@@ -1172,14 +1193,14 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showMessage('Bot removed successfully!', 'success');
-                    closeBotModal();
+                    showMessage(`✅ Bot removed from ${username}!`, 'success');
+                    await refreshBotModal(userId, username); // Refresh the modal
                     loadUsers(); // Refresh user list
                 } else {
-                    showMessage(data.message, 'error');
+                    showMessage('❌ ' + data.message, 'error');
                 }
             } catch (error) {
-                showMessage('Error: ' + error.message, 'error');
+                showMessage('❌ Error: ' + error.message, 'error');
             }
         }
 
