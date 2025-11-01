@@ -163,7 +163,7 @@
             color: var(--primary-light);
         }
         
-        input {
+        input, select {
             width: 100%;
             padding: 15px;
             background: rgba(45, 55, 72, 0.8);
@@ -174,7 +174,7 @@
             transition: all 0.3s;
         }
         
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: var(--primary-light);
             background: rgba(45, 55, 72, 1);
@@ -253,7 +253,7 @@
             transform: translateY(-2px);
         }
         
-        .users-section, .keys-section, .instances-section {
+        .users-section, .keys-section, .instances-section, .bot-management-section {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             padding: 30px;
@@ -269,12 +269,12 @@
             margin-bottom: 25px;
         }
         
-        .users-list, .keys-list, .instances-list {
+        .users-list, .keys-list, .instances-list, .bot-management-list {
             max-height: 400px;
             overflow-y: auto;
         }
         
-        .user-item, .key-item, .instance-item {
+        .user-item, .key-item, .instance-item, .bot-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -285,22 +285,22 @@
             border: 1px solid rgba(139, 95, 191, 0.2);
         }
         
-        .user-info, .key-info, .instance-info {
+        .user-info, .key-info, .instance-info, .bot-info {
             flex: 1;
         }
         
-        .user-name, .key-code, .instance-url {
+        .user-name, .key-code, .instance-url, .bot-name {
             font-weight: 600;
             margin-bottom: 5px;
             color: var(--primary-light);
         }
         
-        .user-email, .key-meta, .instance-meta {
+        .user-email, .key-meta, .instance-meta, .bot-meta {
             font-size: 0.9em;
             opacity: 0.7;
         }
         
-        .key-status, .instance-status {
+        .key-status, .instance-status, .user-role, .bot-status {
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 0.8em;
@@ -314,6 +314,21 @@
         
         .status-unused {
             background: var(--success);
+            color: white;
+        }
+        
+        .role-admin {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .role-subadmin {
+            background: var(--warning);
+            color: black;
+        }
+        
+        .role-user {
+            background: var(--info);
             color: white;
         }
         
@@ -407,6 +422,34 @@
         .instance-url {
             word-break: break-all;
         }
+
+        .bot-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: transform 0.3s;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-allocate {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-reallocate {
+            background: var(--warning);
+            color: black;
+        }
     </style>
 </head>
 <body>
@@ -415,7 +458,7 @@
             <h1>👑 Admin Panel - TikTok Bot System</h1>
         </div>
         <div class="user-menu">
-            <span>Welcome, Admin</span>
+            <span>Welcome, <span id="adminUsername">Admin</span></span>
             <button class="btn-logout" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
@@ -427,7 +470,7 @@
             <h4><i class="fas fa-info-circle"></i> System Information</h4>
             <div>Auth Server: <strong>Current Server</strong></div>
             <div>Main Controller: <strong>https://tiktok-view-bot.up.railway.app</strong></div>
-            <div>Admin Access: <strong>Full System Control</strong></div>
+            <div>Admin Access: <strong id="adminRole">Full System Control</strong></div>
         </div>
 
         <div class="stats-overview">
@@ -458,6 +501,9 @@
             </button>
             <button class="tab" onclick="showTab('instances')">
                 <i class="fas fa-server"></i> Bot Instances
+            </button>
+            <button class="tab" onclick="showTab('bot-management')" id="botManagementTab">
+                <i class="fas fa-robot"></i> Bot Management
             </button>
         </div>
 
@@ -590,15 +636,33 @@
                 </div>
             </div>
         </div>
+
+        <!-- Bot Management Tab -->
+        <div id="bot-management-tab" class="tab-content">
+            <div class="bot-management-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-robot"></i> Bot Allocation Management</h2>
+                    <span id="botManagementCount">0 allocations</span>
+                </div>
+                
+                <div class="bot-management-list" id="botManagementList">
+                    <div class="empty-state">
+                        <i class="fas fa-robot"></i>
+                        <h3>No Bot Allocations</h3>
+                        <p>Users and their allocated bots will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="message"></div>
 
     <script>
         let currentTab = 'keys';
+        let currentAdminRole = '';
 
         function showTab(tabName) {
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -606,18 +670,18 @@
                 tab.classList.remove('active');
             });
             
-            // Show selected tab
             document.getElementById(tabName + '-tab').classList.add('active');
             event.target.classList.add('active');
             currentTab = tabName;
             
-            // Load data for the tab
             if (tabName === 'keys') {
                 loadKeys();
             } else if (tabName === 'users') {
                 loadUsers();
             } else if (tabName === 'instances') {
                 loadInstances();
+            } else if (tabName === 'bot-management') {
+                loadBotManagement();
             }
         }
         
@@ -648,6 +712,27 @@
             }
         }
         
+        // Load admin info
+        async function loadAdminInfo() {
+            try {
+                const response = await fetch('/api/auth-dashboard');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('adminUsername').textContent = data.user.username;
+                    document.getElementById('adminRole').textContent = data.user.role.toUpperCase() + ' Access';
+                    currentAdminRole = data.user.role;
+                    
+                    // Hide bot management tab for subadmins if needed
+                    if (data.user.role === 'subadmin') {
+                        // document.getElementById('botManagementTab').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.log('Error loading admin info:', error);
+            }
+        }
+
         // Registration Keys Functions
         async function generateKey() {
             const note = document.getElementById('keyNote').value;
@@ -795,14 +880,19 @@
                             <div class="user-email">${user.email}</div>
                             <div class="user-meta">
                                 Registered: ${new Date(user.createdAt).toLocaleDateString()} | 
+                                Role: <span class="user-role role-${user.role}">${user.role.toUpperCase()}</span> |
+                                Bots: ${user.allocatedBots.length}/${user.botLimit} |
                                 Status: ${user.isActive ? 'Active' : 'Inactive'}
                             </div>
                         </div>
                         <div class="user-actions">
-                            <span class="key-status ${user.isActive ? 'status-unused' : 'status-used'}">
-                                ${user.isActive ? 'ACTIVE' : 'INACTIVE'}
-                            </span>
-                            <button class="btn-delete" onclick="toggleUser('${user.id}')" style="margin-left: 10px;">
+                            ${currentAdminRole === 'admin' ? `
+                                <select onchange="promoteUser('${user.id}', this.value)" style="margin-right: 10px;">
+                                    <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+                                    <option value="subadmin" ${user.role === 'subadmin' ? 'selected' : ''}>Sub Admin</option>
+                                </select>
+                            ` : ''}
+                            <button class="btn-delete" onclick="toggleUser('${user.id}')">
                                 <i class="fas fa-power-off"></i> ${user.isActive ? 'Deactivate' : 'Activate'}
                             </button>
                         </div>
@@ -811,6 +901,27 @@
                 });
             } catch (error) {
                 console.log('Error loading users:', error);
+            }
+        }
+        
+        async function promoteUser(userId, newRole) {
+            try {
+                const response = await fetch(`/api/admin/promote-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, newRole })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    loadUsers();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error promoting user: ' + error.message, 'error');
             }
         }
         
@@ -833,7 +944,7 @@
             }
         }
         
-        // Bot Instances Functions - FIXED
+        // Bot Instances Functions
         async function addInstance() {
             const instanceUrl = document.getElementById('instanceUrl').value.trim();
             
@@ -842,7 +953,6 @@
                 return;
             }
             
-            // Basic URL validation
             try {
                 new URL(instanceUrl);
             } catch (error) {
@@ -863,11 +973,9 @@
                     })
                 });
                 
-                // ✅ First get response as text to debug
                 const responseText = await response.text();
                 
                 try {
-                    // Then parse as JSON
                     const data = JSON.parse(responseText);
                     
                     if (data.success) {
@@ -922,6 +1030,7 @@
                             <div class="instance-meta">
                                 Added: ${new Date(instance.addedAt).toLocaleDateString()} | 
                                 ID: ${instance.id.substring(0, 8)}... |
+                                Allocated to: ${instance.allocatedTo || 'None'} |
                                 Status: ${instance.enabled ? 'Enabled' : 'Disabled'}
                             </div>
                         </div>
@@ -963,25 +1072,133 @@
             }
         }
         
-        // Stats Update
-        function updateStats() {
-            // This will be updated when loading data
-            const users = document.querySelectorAll('.user-item').length;
-            const keys = document.querySelectorAll('.key-item').length;
-            const instances = document.querySelectorAll('.instance-item').length;
+        // Bot Management Functions
+        async function loadBotManagement() {
+            try {
+                const [usersResponse, instancesResponse] = await Promise.all([
+                    fetch('/api/admin/users'),
+                    fetch('/api/admin/instances')
+                ]);
+                
+                const usersData = await usersResponse.json();
+                const instancesData = await instancesResponse.json();
+                
+                const managementList = document.getElementById('botManagementList');
+                document.getElementById('botManagementCount').textContent = `${usersData.users.length} users`;
+                
+                if (usersData.users.length === 0) {
+                    managementList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-robot"></i>
+                            <h3>No Users Found</h3>
+                            <p>No bot allocations to manage</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                managementList.innerHTML = '';
+                
+                usersData.users.forEach(user => {
+                    const userBots = instancesData.instances.filter(bot => 
+                        user.allocatedBots.includes(bot.id)
+                    );
+                    
+                    const botItem = document.createElement('div');
+                    botItem.className = 'bot-item';
+                    botItem.innerHTML = `
+                        <div class="bot-info">
+                            <div class="bot-name">${user.username} (${user.role})</div>
+                            <div class="bot-meta">
+                                Allocated Bots: ${user.allocatedBots.length}/${user.botLimit} |
+                                Created: ${new Date(user.createdAt).toLocaleDateString()}
+                            </div>
+                            <div style="margin-top: 10px;">
+                                ${userBots.map(bot => `
+                                    <span style="display: inline-block; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 5px; margin: 2px; font-size: 0.8em;">
+                                        ${bot.url}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="bot-actions">
+                            <button class="btn-action btn-allocate" onclick="manageUserBots('${user.id}')">
+                                <i class="fas fa-cog"></i> Manage Bots
+                            </button>
+                            <button class="btn-action btn-reallocate" onclick="reallocateBots('${user.id}')">
+                                <i class="fas fa-sync"></i> Reallocate
+                            </button>
+                        </div>
+                    `;
+                    managementList.appendChild(botItem);
+                });
+            } catch (error) {
+                console.log('Error loading bot management:', error);
+                showMessage('Error loading bot management', 'error');
+            }
+        }
+        
+        async function manageUserBots(userId) {
+            showMessage('Bot management feature coming soon!', 'info');
+        }
+        
+        async function reallocateBots(userId) {
+            if (!confirm('Are you sure you want to reallocate bots for this user? This will remove current allocations.')) {
+                return;
+            }
             
-            document.getElementById('totalUsers').textContent = users;
-            document.getElementById('totalKeys').textContent = keys;
-            document.getElementById('totalInstances').textContent = instances;
-            document.getElementById('activeInstances').textContent = instances; // Assuming all active
+            try {
+                const response = await fetch(`/api/admin/reallocate-bots`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    loadBotManagement();
+                    loadUsers();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error reallocating bots: ' + error.message, 'error');
+            }
+        }
+        
+        // Stats Update
+        async function updateStats() {
+            try {
+                const [usersResponse, keysResponse, instancesResponse] = await Promise.all([
+                    fetch('/api/admin/users'),
+                    fetch('/api/admin/keys'),
+                    fetch('/api/admin/instances')
+                ]);
+                
+                const usersData = await usersResponse.json();
+                const keysData = await keysResponse.json();
+                const instancesData = await instancesResponse.json();
+                
+                document.getElementById('totalUsers').textContent = usersData.users.length;
+                document.getElementById('totalKeys').textContent = keysData.keys.length;
+                document.getElementById('totalInstances').textContent = instancesData.instances.length;
+                document.getElementById('activeInstances').textContent = instancesData.instances.filter(inst => inst.enabled).length;
+            } catch (error) {
+                console.log('Error updating stats:', error);
+            }
         }
         
         async function logout() {
             try {
+                const token = localStorage.getItem('userToken');
                 await fetch('/api/logout', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token })
                 });
+                localStorage.removeItem('userToken');
                 window.location.href = '/login';
             } catch (error) {
                 window.location.href = '/login';
@@ -990,6 +1207,7 @@
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            loadAdminInfo();
             loadKeys();
             updateStats();
             showMessage('👑 Welcome to Admin Panel!', 'success');
