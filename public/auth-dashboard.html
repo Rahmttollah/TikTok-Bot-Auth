@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Dashboard - TikTok Bot System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #8B5FBF;
+            --primary-dark: #6B46C1;
+            --primary-light: #9F7AEA;
+            --secondary: #D53F8C;
+            --dark: #1A202C;
+            --darker: #0F1419;
+            --light: #EDF2F7;
+            --success: #48BB78;
+            --danger: #F56565;
+            --warning: #ECC94B;
+            --info: #4299E1;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            color: var(--light);
+            animation: gradientShift 10s ease infinite;
+            background-size: 400% 400%;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(139, 95, 191, 0.3);
+        }
+        
+        .logo h1 {
+            font-size: 1.8em;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .btn-logout {
+            padding: 12px 24px;
+            background: rgba(245, 101, 101, 0.2);
+            color: var(--light);
+            border: 1px solid var(--danger);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .btn-logout:hover {
+            background: var(--danger);
+            transform: translateY(-2px);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+        }
+        
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .welcome-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .welcome-title {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .welcome-subtitle {
+            font-size: 1.2em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+        
+        .username {
+            color: var(--primary-light);
+            font-weight: bold;
+        }
+        
+        .role-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 10px;
+            font-size: 0.8em;
+        }
+        
+        .role-admin {
+            background: linear-gradient(135deg, var(--danger), #E53E3E);
+            color: white;
+        }
+        
+        .role-subadmin {
+            background: linear-gradient(135deg, var(--warning), #D69E2E);
+            color: black;
+        }
+        
+        .role-user {
+            background: linear-gradient(135deg, var(--success), #38A169);
+            color: white;
+        }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .panel-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .panel-title {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: var(--primary-light);
+        }
+        
+        .panel-description {
+            opacity: 0.8;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .btn-access {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+        }
+        
+        .btn-access:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(139, 95, 191, 0.4);
+        }
+        
+        .btn-admin {
+            background: linear-gradient(135deg, var(--danger), #E53E3E);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+        
+        .admin-note {
+            background: rgba(245, 101, 101, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--danger);
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+        
+        .alert {
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .alert.success {
+            background: rgba(72, 187, 120, 0.2);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+        
+        .alert.error {
+            background: rgba(245, 101, 101, 0.2);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>🚀 TikTok Bot System</h1>
+        </div>
+        <div class="user-menu">
+            <span class="welcome-text">Welcome, <span id="username">User</span><span id="roleBadge" class="role-badge"></span></span>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="welcome-section">
+            <div class="welcome-icon">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h1 class="welcome-title">Authentication Dashboard</h1>
+            <p class="welcome-subtitle">Hello <span class="username" id="userDisplayName">User</span>!</p>
+            <p class="welcome-subtitle">You are successfully logged in</p>
+        </div>
+        
+        <div id="message"></div>
+        
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-number" id="allocatedBots">0</div>
+                <div class="stat-label">Your Allocated Bots</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="botLimit">0</div>
+                <div class="stat-label">Your Bot Limit</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalBots">0</div>
+                <div class="stat-label">Total System Bots</div>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <div class="panel-icon">
+                <i class="fas fa-gamepad"></i>
+            </div>
+            <h2 class="panel-title">Bot Control Panel</h2>
+            <p class="panel-description">
+                Access the main TikTok Bot controller to manage your view campaigns and monitor performance.
+            </p>
+            <button class="btn-access" onclick="redirectToController()">
+                <i class="fas fa-external-link-alt"></i> Go to Bot Controller
+            </button>
+            
+            <div id="adminSection" style="display: none;">
+                <div class="admin-note">
+                    <strong>Admin Access:</strong> Manual URL entry required for security
+                </div>
+                <button class="btn-access btn-admin" onclick="redirectToAdmin()">
+                    <i class="fas fa-shield-alt"></i> Access Admin Panel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/auth-dashboard');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('username').textContent = data.user.username;
+                    document.getElementById('userDisplayName').textContent = data.user.username;
+                    
+                    // Set role badge
+                    const roleBadge = document.getElementById('roleBadge');
+                    roleBadge.textContent = data.user.role.toUpperCase();
+                    roleBadge.className = `role-badge role-${data.user.role}`;
+                    
+                    // Update stats
+                    document.getElementById('allocatedBots').textContent = data.user.allocatedBots.length;
+                    document.getElementById('botLimit').textContent = data.user.botLimit;
+                    document.getElementById('totalBots').textContent = data.totalBots;
+                    
+                    // Show admin section if admin/subadmin
+                    if (data.user.role === 'admin' || data.user.role === 'subadmin') {
+                        document.getElementById('adminSection').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.log('Error loading dashboard:', error);
+                showMessage('Error loading dashboard', 'error');
+            }
+        }
+        
+        async function redirectToController() {
+            try {
+                const response = await fetch('/api/redirect-to-controller', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.href = data.redirectUrl;
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error redirecting to controller', 'error');
+            }
+        }
+        
+        function redirectToAdmin() {
+            // Manual admin access - user must type URL themselves
+            window.location.href = '/admin';
+        }
+        
+        async function logout() {
+            try {
+                const token = localStorage.getItem('userToken');
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token })
+                });
+                localStorage.removeItem('userToken');
+                window.location.href = '/login';
+            } catch (error) {
+                window.location.href = '/login';
+            }
+        }
+        
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+            showMessage('🎉 Welcome to Authentication Dashboard!', 'success');
+        });
+    </script>
+</body>
+</html>
