@@ -1,0 +1,12 @@
+[
+  {
+    "id": "bot001",
+    "url": "https://tiktok-bot-instance1.up.railway.app",
+    "name": "Bot Instance 1",
+    "allocatedTo": null,
+    "isAvailable": true,
+    "enabled": true,
+    "addedAt": "2024-01-01T00:00:00.000Z",
+    "lastSeen": "2024-01-01T00:00:00.000Z"
+  }
+]
