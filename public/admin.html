@@ -365,6 +365,12 @@
             color: var(--danger);
         }
         
+        .alert.info {
+            background: rgba(66, 153, 225, 0.2);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+        
         .empty-state {
             text-align: center;
             padding: 40px;
@@ -662,6 +668,57 @@
         let currentTab = 'keys';
         let currentAdminRole = '';
 
+        // Utility function for API calls with better error handling
+        async function makeApiCall(url, options = {}) {
+            try {
+                const token = localStorage.getItem('userToken');
+                const defaultOptions = {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                };
+                
+                const response = await fetch(url, { ...defaultOptions, ...options });
+                
+                // Check content type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    
+                    // If it's HTML, likely a redirect to login
+                    if (text.includes('<html') || text.includes('<!DOCTYPE')) {
+                        throw new Error('Authentication required. Please login again.');
+                    }
+                    
+                    throw new Error(`Unexpected response format: ${contentType}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+
+        // Safe API call with fallback
+        async function safeApiCall(url, options = {}) {
+            try {
+                return await makeApiCall(url, options);
+            } catch (error) {
+                // If auth error, redirect to login
+                if (error.message.includes('Authentication') || error.message.includes('login')) {
+                    showMessage('Authentication failed. Redirecting to login...', 'error');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                    return { success: false, message: 'Authentication failed' };
+                }
+                
+                throw error;
+            }
+        }
+
         function showTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
@@ -712,21 +769,48 @@
             }
         }
         
+        // Check authentication status
+        async function checkAuthentication() {
+            const token = localStorage.getItem('userToken');
+            if (!token) {
+                window.location.href = '/login';
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/auth-dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Authentication failed');
+                }
+                
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error('Not authorized');
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                localStorage.removeItem('userToken');
+                window.location.href = '/login';
+                return false;
+            }
+        }
+
         // Load admin info
         async function loadAdminInfo() {
             try {
-                const response = await fetch('/api/auth-dashboard');
-                const data = await response.json();
+                const data = await safeApiCall('/api/auth-dashboard');
                 
                 if (data.success) {
                     document.getElementById('adminUsername').textContent = data.user.username;
                     document.getElementById('adminRole').textContent = data.user.role.toUpperCase() + ' Access';
                     currentAdminRole = data.user.role;
-                    
-                    // Hide bot management tab for subadmins if needed
-                    if (data.user.role === 'subadmin') {
-                        // document.getElementById('botManagementTab').style.display = 'none';
-                    }
                 }
             } catch (error) {
                 console.log('Error loading admin info:', error);
@@ -740,13 +824,10 @@
             setLoading('generateBtn', true);
             
             try {
-                const response = await fetch('/api/admin/generate-key', {
+                const data = await safeApiCall('/api/admin/generate-key', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ note: note })
                 });
-                
-                const data = await response.json();
                 
                 if (data.success) {
                     document.getElementById('generatedKey').textContent = data.key;
@@ -776,8 +857,7 @@
         
         async function loadKeys() {
             try {
-                const response = await fetch('/api/admin/keys');
-                const data = await response.json();
+                const data = await safeApiCall('/api/admin/keys');
                 
                 const keysList = document.getElementById('keysList');
                 document.getElementById('keysCount').textContent = `${data.keys.length} keys`;
@@ -822,6 +902,7 @@
                 });
             } catch (error) {
                 console.log('Error loading keys:', error);
+                showMessage('Error loading keys', 'error');
             }
         }
         
@@ -831,11 +912,9 @@
             }
             
             try {
-                const response = await fetch(`/api/admin/keys/${key}`, {
+                const data = await safeApiCall(`/api/admin/keys/${key}`, {
                     method: 'DELETE'
                 });
-                
-                const data = await response.json();
                 
                 if (data.success) {
                     showMessage('Key deleted successfully!', 'success');
@@ -852,8 +931,7 @@
         // Users Functions
         async function loadUsers() {
             try {
-                const response = await fetch('/api/admin/users');
-                const data = await response.json();
+                const data = await safeApiCall('/api/admin/users');
                 
                 const usersList = document.getElementById('usersList');
                 document.getElementById('usersCount').textContent = `${data.users.length} users`;
@@ -901,18 +979,16 @@
                 });
             } catch (error) {
                 console.log('Error loading users:', error);
+                showMessage('Error loading users', 'error');
             }
         }
         
         async function promoteUser(userId, newRole) {
             try {
-                const response = await fetch(`/api/admin/promote-user`, {
+                const data = await safeApiCall(`/api/admin/promote-user`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId, newRole })
                 });
-                
-                const data = await response.json();
                 
                 if (data.success) {
                     showMessage(data.message, 'success');
@@ -927,11 +1003,9 @@
         
         async function toggleUser(userId) {
             try {
-                const response = await fetch(`/api/admin/users/${userId}/toggle`, {
+                const data = await safeApiCall(`/api/admin/users/${userId}/toggle`, {
                     method: 'POST'
                 });
-                
-                const data = await response.json();
                 
                 if (data.success) {
                     showMessage(data.message, 'success');
@@ -963,37 +1037,23 @@
             setLoading('addBtn', true);
             
             try {
-                const response = await fetch('/api/admin/instances', {
+                const data = await safeApiCall('/api/admin/instances', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify({
                         url: instanceUrl
                     })
                 });
                 
-                const responseText = await response.text();
-                
-                try {
-                    const data = JSON.parse(responseText);
-                    
-                    if (data.success) {
-                        showMessage('✅ Bot instance added successfully!', 'success');
-                        document.getElementById('instanceUrl').value = '';
-                        loadInstances();
-                        updateStats();
-                    } else {
-                        showMessage(data.message, 'error');
-                    }
-                } catch (parseError) {
-                    console.error('JSON parse error:', parseError);
-                    console.error('Raw response:', responseText);
-                    showMessage('Server returned invalid response', 'error');
+                if (data.success) {
+                    showMessage('✅ Bot instance added successfully!', 'success');
+                    document.getElementById('instanceUrl').value = '';
+                    loadInstances();
+                    updateStats();
+                } else {
+                    showMessage(data.message, 'error');
                 }
                 
             } catch (error) {
-                console.error('Fetch error:', error);
                 showMessage('Error adding instance: ' + error.message, 'error');
             } finally {
                 setLoading('addBtn', false);
@@ -1002,8 +1062,7 @@
         
         async function loadInstances() {
             try {
-                const response = await fetch('/api/admin/instances');
-                const data = await response.json();
+                const data = await safeApiCall('/api/admin/instances');
                 
                 const instancesList = document.getElementById('instancesList');
                 document.getElementById('instancesCount').textContent = `${data.instances.length} instances`;
@@ -1054,11 +1113,9 @@
             }
             
             try {
-                const response = await fetch(`/api/admin/instances/${instanceId}`, {
+                const data = await safeApiCall(`/api/admin/instances/${instanceId}`, {
                     method: 'DELETE'
                 });
-                
-                const data = await response.json();
                 
                 if (data.success) {
                     showMessage('✅ Bot instance deleted successfully!', 'success');
@@ -1075,13 +1132,10 @@
         // Bot Management Functions
         async function loadBotManagement() {
             try {
-                const [usersResponse, instancesResponse] = await Promise.all([
-                    fetch('/api/admin/users'),
-                    fetch('/api/admin/instances')
+                const [usersData, instancesData] = await Promise.all([
+                    safeApiCall('/api/admin/users'),
+                    safeApiCall('/api/admin/instances')
                 ]);
-                
-                const usersData = await usersResponse.json();
-                const instancesData = await instancesResponse.json();
                 
                 const managementList = document.getElementById('botManagementList');
                 document.getElementById('botManagementCount').textContent = `${usersData.users.length} users`;
@@ -1148,13 +1202,10 @@
             }
             
             try {
-                const response = await fetch(`/api/admin/reallocate-bots`, {
+                const data = await safeApiCall(`/api/admin/reallocate-bots`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId })
                 });
-                
-                const data = await response.json();
                 
                 if (data.success) {
                     showMessage(data.message, 'success');
@@ -1171,15 +1222,11 @@
         // Stats Update
         async function updateStats() {
             try {
-                const [usersResponse, keysResponse, instancesResponse] = await Promise.all([
-                    fetch('/api/admin/users'),
-                    fetch('/api/admin/keys'),
-                    fetch('/api/admin/instances')
+                const [usersData, keysData, instancesData] = await Promise.all([
+                    safeApiCall('/api/admin/users'),
+                    safeApiCall('/api/admin/keys'),
+                    safeApiCall('/api/admin/instances')
                 ]);
-                
-                const usersData = await usersResponse.json();
-                const keysData = await keysResponse.json();
-                const instancesData = await instancesResponse.json();
                 
                 document.getElementById('totalUsers').textContent = usersData.users.length;
                 document.getElementById('totalKeys').textContent = keysData.keys.length;
@@ -1198,19 +1245,23 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: token })
                 });
-                localStorage.removeItem('userToken');
-                window.location.href = '/login';
             } catch (error) {
+                console.log('Logout error:', error);
+            } finally {
+                localStorage.removeItem('userToken');
                 window.location.href = '/login';
             }
         }
         
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            loadAdminInfo();
-            loadKeys();
-            updateStats();
-            showMessage('👑 Welcome to Admin Panel!', 'success');
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isAuthenticated = await checkAuthentication();
+            if (isAuthenticated) {
+                loadAdminInfo();
+                loadKeys();
+                updateStats();
+                showMessage('👑 Welcome to Admin Panel!', 'success');
+            }
         });
     </script>
 </body>
