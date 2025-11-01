@@ -130,29 +130,26 @@ function writeBotInstances(instances) {
     }
 }
 
-// 🔥 ENHANCED BOT ALLOCATION SYSTEM
+// ✅ FIXED BOT ALLOCATION - Dynamic allocation
 function allocateBotsToUser(username) {
     const instances = readBotInstances();
     const users = readUsers();
     
-    // Get unused bots (not allocated to any user AND enabled)
-    const unusedBots = instances.filter(bot => 
+    // Get available bots (not allocated AND enabled)
+    const availableBots = instances.filter(bot => 
         !bot.allocatedTo && bot.enabled
     );
     
-    console.log(`🔄 Allocating bots for ${username}. Available: ${unusedBots.length}`);
+    console.log(`🔄 Allocating bots for ${username}. Available: ${availableBots.length}`);
     
-    // If not enough bots, return empty
-    if (unusedBots.length < 3) {
-        console.log(`❌ Not enough unused bots for ${username}. Available: ${unusedBots.length}`);
-        return [];
-    }
-    
-    // Select 3 random bots
+    // Allocate as many as available (max 3)
+    const botsToAllocate = Math.min(availableBots.length, 3);
     const selectedBots = [];
-    const shuffled = [...unusedBots].sort(() => 0.5 - Math.random());
     
-    for (let i = 0; i < 3 && i < shuffled.length; i++) {
+    // Shuffle and select bots
+    const shuffled = [...availableBots].sort(() => 0.5 - Math.random());
+    
+    for (let i = 0; i < botsToAllocate; i++) {
         selectedBots.push(shuffled[i].id);
         
         // Mark bot as allocated
@@ -160,7 +157,6 @@ function allocateBotsToUser(username) {
         if (botIndex !== -1) {
             instances[botIndex].allocatedTo = username;
             instances[botIndex].allocatedAt = new Date().toISOString();
-            instances[botIndex].status = 'allocated';
         }
     }
     
@@ -249,30 +245,38 @@ function requireSuperAdmin(req, res, next) {
     }
 }
 
-// Routes
+// ✅ FIXED ROOT ROUTE - No redirect loops
 app.get('/', (req, res) => {
     if (req.session.user) {
-        // 🔥 SMART DASHBOARD - Auto user type detection
+        // If user is admin, show admin dashboard
         if (req.session.user.role === 'super_admin' || req.session.user.role === 'sub_admin') {
-            res.redirect('/dashboard?type=admin');
+            return res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
         } else {
-            res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${getUserToken(req.session.user.username)}`);
+            // Normal user - redirect to main controller with token
+            const token = getUserToken(req.session.user.username);
+            if (token) {
+                return res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${token}`);
+            }
         }
-    } else {
-        res.redirect('/login');
     }
+    // No user session - show login page
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
+// ✅ FIXED LOGIN ROUTE
 app.get('/login', (req, res) => {
     if (req.session.user) {
+        // Already logged in - redirect appropriately
         if (req.session.user.role === 'super_admin' || req.session.user.role === 'sub_admin') {
-            res.redirect('/dashboard?type=admin');
+            return res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
         } else {
-            res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${getUserToken(req.session.user.username)}`);
+            const token = getUserToken(req.session.user.username);
+            if (token) {
+                return res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${token}`);
+            }
         }
-    } else {
-        res.sendFile(path.join(__dirname, 'public', 'login.html'));
     }
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 app.get('/register', (req, res) => {
@@ -283,27 +287,43 @@ app.get('/register', (req, res) => {
     }
 });
 
-// 🔥 SMART ADMIN ACCESS - Manual URL only
-app.get('/admin', requireAuth, (req, res) => {
+// ✅ FIXED ADMIN ROUTE
+app.get('/admin', (req, res) => {
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+    
     // Only allow if user is admin
     if (req.session.user.role === 'super_admin' || req.session.user.role === 'sub_admin') {
         res.sendFile(path.join(__dirname, 'public', 'admin.html'));
     } else {
         // Normal users get redirected to main controller
-        res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${getUserToken(req.session.user.username)}`);
+        const token = getUserToken(req.session.user.username);
+        if (token) {
+            res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${token}`);
+        } else {
+            res.redirect('/login');
+        }
     }
 });
 
-// 🔥 SMART DASHBOARD
-app.get('/dashboard', requireAuth, (req, res) => {
-    const userType = req.query.type;
+// ✅ FIXED DASHBOARD ROUTE
+app.get('/dashboard', (req, res) => {
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
     
+    const userType = req.query.type;
     if (userType === 'admin' && (req.session.user.role === 'super_admin' || req.session.user.role === 'sub_admin')) {
-        // Show admin dashboard
         res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
     } else {
         // Normal user - redirect to main controller
-        res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${getUserToken(req.session.user.username)}`);
+        const token = getUserToken(req.session.user.username);
+        if (token) {
+            res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${token}`);
+        } else {
+            res.redirect('/login');
+        }
     }
 });
 
@@ -523,10 +543,8 @@ app.post('/api/logout', (req, res) => {
 });
 
 // =============================
-// ✅ SUPER ADMIN APIS
+// ✅ FIXED PROMOTE USER API
 // =============================
-
-// 🔥 PROMOTE USER TO SUB ADMIN (Super Admin Only)
 app.post('/api/admin/promote-user', requireSuperAdmin, (req, res) => {
     try {
         const { userId, newRole } = req.body;
@@ -542,18 +560,28 @@ app.post('/api/admin/promote-user', requireSuperAdmin, (req, res) => {
             return res.json({ success: false, message: 'User not found' });
         }
 
+        // Don't allow demoting super admin
+        if (user.role === 'super_admin') {
+            return res.json({ success: false, message: 'Cannot modify Super Admin' });
+        }
+
         user.role = newRole;
         
         if (writeUsers(users)) {
             res.json({ 
                 success: true, 
-                message: `User ${user.username} promoted to ${newRole}`,
-                user: user
+                message: `User ${user.username} ${newRole === 'sub_admin' ? 'promoted to Sub Admin' : 'demoted to User'}`,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    role: user.role
+                }
             });
         } else {
-            res.json({ success: false, message: 'Failed to promote user' });
+            res.json({ success: false, message: 'Failed to update user' });
         }
     } catch (error) {
+        console.error('Promote user error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -640,7 +668,7 @@ app.post('/api/admin/users/:userId/bots', requireAdmin, (req, res) => {
 });
 
 // =============================
-// ✅ MANAGE USER BOTS API
+// ✅ FIXED BOT MANAGEMENT API
 // =============================
 app.post('/api/admin/users/:userId/manage-bots', requireAdmin, (req, res) => {
     try {
@@ -658,13 +686,18 @@ app.post('/api/admin/users/:userId/manage-bots', requireAdmin, (req, res) => {
         if (!user.allocatedBots) user.allocatedBots = [];
 
         if (action === 'add_bot') {
+            // Check if user already has 3 bots
+            if (user.allocatedBots.length >= 3) {
+                return res.json({ success: false, message: 'User already has maximum 3 bots' });
+            }
+            
             // Find available bot
             const availableBot = instances.find(bot => 
-                !bot.allocatedTo && bot.enabled
+                !bot.allocatedTo && bot.enabled && bot.id === botId
             );
             
             if (!availableBot) {
-                return res.json({ success: false, message: 'No available bots. Add more bot instances first.' });
+                return res.json({ success: false, message: 'Bot not available or already allocated' });
             }
 
             // Add to user
@@ -681,9 +714,16 @@ app.post('/api/admin/users/:userId/manage-bots', requireAdmin, (req, res) => {
                     message: `Bot allocated to ${user.username}`,
                     allocatedBots: user.allocatedBots
                 });
+            } else {
+                res.json({ success: false, message: 'Failed to update databases' });
             }
 
         } else if (action === 'remove_bot' && botId) {
+            // Check if user has this bot
+            if (!user.allocatedBots.includes(botId)) {
+                return res.json({ success: false, message: 'User does not have this bot' });
+            }
+            
             // Remove from user
             user.allocatedBots = user.allocatedBots.filter(bot => bot !== botId);
             
@@ -700,11 +740,14 @@ app.post('/api/admin/users/:userId/manage-bots', requireAdmin, (req, res) => {
                     message: `Bot removed from ${user.username}`,
                     allocatedBots: user.allocatedBots
                 });
+            } else {
+                res.json({ success: false, message: 'Failed to update databases' });
             }
         } else {
             res.json({ success: false, message: 'Invalid action' });
         }
     } catch (error) {
+        console.error('Bot management error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -754,6 +797,80 @@ app.get('/api/admin/users/:userId/bot-details', requireAdmin, (req, res) => {
             totalAllocated: userBots.length
         });
     } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// =============================
+// ✅ BULK ADD BOT INSTANCES
+// =============================
+app.post('/api/admin/bulk-add-instances', requireAdmin, (req, res) => {
+    try {
+        const { urls } = req.body; // Array of URLs
+        
+        if (!urls || !Array.isArray(urls) || urls.length === 0) {
+            return res.json({ success: false, message: 'URLs array required' });
+        }
+
+        const instances = readBotInstances();
+        const results = {
+            added: 0,
+            failed: 0,
+            duplicates: 0,
+            details: []
+        };
+
+        urls.forEach(url => {
+            const trimmedUrl = url.trim();
+            
+            if (!trimmedUrl) {
+                results.failed++;
+                results.details.push({ url: trimmedUrl, status: 'empty', error: 'Empty URL' });
+                return;
+            }
+
+            // Validate URL
+            try {
+                new URL(trimmedUrl);
+            } catch (error) {
+                results.failed++;
+                results.details.push({ url: trimmedUrl, status: 'invalid', error: 'Invalid URL' });
+                return;
+            }
+
+            // Check for duplicates
+            if (instances.find(inst => inst.url === trimmedUrl)) {
+                results.duplicates++;
+                results.details.push({ url: trimmedUrl, status: 'duplicate', error: 'Already exists' });
+                return;
+            }
+
+            // Add instance
+            const newInstance = { 
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                url: trimmedUrl, 
+                addedAt: new Date().toISOString(), 
+                enabled: true,
+                allocatedTo: null,
+                allocatedAt: null
+            };
+
+            instances.push(newInstance);
+            results.added++;
+            results.details.push({ url: trimmedUrl, status: 'added', id: newInstance.id });
+        });
+
+        if (writeBotInstances(instances)) {
+            res.json({ 
+                success: true, 
+                message: `Bulk add completed: ${results.added} added, ${results.duplicates} duplicates, ${results.failed} failed`,
+                results: results
+            });
+        } else {
+            res.json({ success: false, message: 'Failed to save instances' });
+        }
+    } catch (error) {
+        console.error('Bulk add error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -1091,4 +1208,6 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Smart Dashboard: Active`);
     console.log(`📊 Bot Statistics API: Available`);
     console.log(`🔧 Bot Management API: Enhanced`);
+    console.log(`🔄 Redirect Loops: FIXED`);
+    console.log(`📦 Bulk Bot Addition: Available`);
 });
