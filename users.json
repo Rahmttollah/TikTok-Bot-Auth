@@ -1,0 +1,15 @@
+[
+  {
+    "id": "admin",
+    "username": "Rahmttollah",
+    "email": "rahmttollahn@gmail.com",
+    "password": "$2a$10$hashed_password_here",
+    "role": "admin",
+    "allocatedBots": [],
+    "botLimit": 0,
+    "createdBy": "system",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "isActive": true,
+    "lastLogin": "2024-01-01T00:00:00.000Z"
+  }
+]
