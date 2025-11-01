@@ -344,7 +344,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 // =============================
-// ✅ USER LOGIN API
+// ✅ USER LOGIN API - FIXED SUPER ADMIN
 // =============================
 app.post('/api/login', async (req, res) => {
     try {
@@ -354,10 +354,58 @@ app.post('/api/login', async (req, res) => {
             return res.json({ success: false, message: 'Username and password required' });
         }
 
+        // 🔥 FIX: Check SUPER ADMIN first (hardcoded check)
+        if (username === SUPER_ADMIN.username) {
+            if (password === SUPER_ADMIN.password) {
+                // SUPER ADMIN login successful
+                const token = generateToken();
+                const tokens = readTokens();
+                
+                tokens.push({
+                    token: token,
+                    username: username,
+                    createdAt: new Date().toISOString(),
+                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                    isActive: true
+                });
+                
+                writeTokens(tokens);
+
+                req.session.user = { 
+                    username: username,
+                    email: 'rahmttollahn@gmail.com',
+                    role: 'super_admin',
+                    isAdmin: true
+                };
+                
+                if (rememberMe) {
+                    req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+                }
+
+                res.json({ 
+                    success: true, 
+                    message: 'Super Admin login successful!',
+                    token: token,
+                    role: 'super_admin',
+                    redirectUrl: '/dashboard?type=admin'
+                });
+                return;
+            } else {
+                return res.json({ success: false, message: 'Invalid Super Admin password' });
+            }
+        }
+
+        // Normal user login
         const users = readUsers();
         const user = users.find(u => u.username === username && u.isActive);
         
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        if (!user) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+
+        // Check password for normal users
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
             return res.json({ success: false, message: 'Invalid credentials' });
         }
 
@@ -401,6 +449,7 @@ app.post('/api/login', async (req, res) => {
             redirectUrl: redirectUrl
         });
     } catch (error) {
+        console.error('Login error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
