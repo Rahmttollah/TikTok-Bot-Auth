@@ -1,0 +1,10 @@
+[
+  {
+    "key": "ABCD-EFGH-IJKL",
+    "note": "Initial admin key",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null
+  }
+]
