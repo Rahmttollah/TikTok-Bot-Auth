@@ -1,7 +1,7 @@
 {
   "name": "tiktok-auth-server",
-  "version": "1.0.0",
-  "description": "Authentication Server for TikTok Bot System",
+  "version": "2.0.0",
+  "description": "Authentication Server for TikTok Bot System with Bot Allocation",
   "main": "auth-server.js",
   "scripts": {
     "start": "node auth-server.js"
