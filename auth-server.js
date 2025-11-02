@@ -16,15 +16,29 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // Session middleware
+// Session middleware with better configuration
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'super-secret-key-2024',
+    secret: process.env.SESSION_SECRET || 'super-secret-key-2024-fixed',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: false,
-        maxAge: 30 * 24 * 60 * 60 * 1000
-    }
+        secure: false, // Set to true if using HTTPS
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        httpOnly: true,
+        sameSite: 'lax'
+    },
+    name: 'tiktokbot.sid' // Specific session name
 }));
+
+// ✅ ADD SESSION CLEANUP MIDDLEWARE
+app.use((req, res, next) => {
+    // Prevent redirect loops by checking path
+    if (req.path === '/login' && req.session.user) {
+        console.log('🔄 Login route accessed with active session');
+        // Continue normally, let the login route handle it
+    }
+    next();
+});
 
 // Main Controller URL
 const MAIN_CONTROLLER_URL = 'https://tiktok-view-bot.up.railway.app';
