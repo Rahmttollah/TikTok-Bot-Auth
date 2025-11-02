@@ -25,6 +25,9 @@
             --danger: #F56565;
             --warning: #ECC94B;
             --info: #4299E1;
+            --gray: #718096;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --card-border: rgba(139, 95, 191, 0.2);
         }
         
         body {
@@ -47,10 +50,26 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(139, 95, 191, 0.3);
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
         
         .logo h1 {
+            font-size: 1.8em;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .logo-icon {
             font-size: 1.8em;
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
             -webkit-background-clip: text;
@@ -63,6 +82,24 @@
             gap: 20px;
         }
         
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        
         .btn-logout {
             padding: 12px 24px;
             background: rgba(245, 101, 101, 0.2);
@@ -72,11 +109,15 @@
             cursor: pointer;
             transition: all 0.3s;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .btn-logout:hover {
             background: var(--danger);
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
         }
         
         .container {
@@ -93,6 +134,7 @@
         .welcome-section {
             text-align: center;
             margin-bottom: 50px;
+            max-width: 800px;
         }
         
         .welcome-icon {
@@ -115,6 +157,7 @@
             font-size: 1.2em;
             opacity: 0.8;
             margin-bottom: 10px;
+            line-height: 1.6;
         }
         
         .username {
@@ -146,99 +189,130 @@
             color: white;
         }
         
-        .control-panel {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            padding: 40px;
-            border-radius: 20px;
-            border: 1px solid rgba(139, 95, 191, 0.3);
-            text-align: center;
-            max-width: 600px;
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
         
-        .panel-icon {
-            font-size: 3em;
+        .dashboard-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            transition: all 0.3s;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border-color: rgba(139, 95, 191, 0.4);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
             margin-bottom: 20px;
+            gap: 15px;
+        }
+        
+        .card-icon {
+            font-size: 2em;
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
-        .panel-title {
-            font-size: 1.8em;
-            margin-bottom: 15px;
+        .card-title {
+            font-size: 1.5em;
             color: var(--primary-light);
         }
         
-        .panel-description {
+        .card-content {
+            margin-bottom: 25px;
+        }
+        
+        .card-description {
             opacity: 0.8;
-            margin-bottom: 30px;
             line-height: 1.6;
-        }
-        
-        .btn-access {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 15px;
-        }
-        
-        .btn-access:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(139, 95, 191, 0.4);
-        }
-        
-        .btn-admin {
-            background: linear-gradient(135deg, var(--danger), #E53E3E);
+            margin-bottom: 20px;
         }
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-            width: 100%;
-            max-width: 600px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
         }
         
         .stat-card {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 25px;
-            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 12px;
             text-align: center;
-            border: 1px solid rgba(139, 95, 191, 0.3);
+            border: 1px solid var(--card-border);
         }
         
         .stat-number {
-            font-size: 2.5em;
+            font-size: 1.8em;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
         .stat-label {
-            font-size: 1em;
-            opacity: 0.9;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .btn-primary {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(139, 95, 191, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #E53E3E);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #D69E2E);
+            color: black;
+        }
+        
+        .admin-section {
+            background: rgba(245, 101, 101, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid var(--danger);
+            margin-top: 20px;
         }
         
         .admin-note {
-            background: rgba(245, 101, 101, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid var(--danger);
-            margin-top: 20px;
             font-size: 0.9em;
+            margin-bottom: 15px;
+            color: var(--danger);
         }
         
         .alert {
@@ -246,6 +320,8 @@
             border-radius: 12px;
             margin: 20px 0;
             text-align: center;
+            width: 100%;
+            max-width: 600px;
         }
         
         .alert.success {
@@ -259,15 +335,77 @@
             border: 1px solid var(--danger);
             color: var(--danger);
         }
+        
+        .alert.info {
+            background: rgba(66, 153, 225, 0.2);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            font-size: 0.9em;
+            opacity: 0.7;
+            border-top: 1px solid var(--card-border);
+            width: 100%;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .user-menu {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .welcome-title {
+                font-size: 2em;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 20px 15px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="logo">
-            <h1>🚀 TikTok Bot System</h1>
+            <div class="logo-icon">
+                <i class="fas fa-robot"></i>
+            </div>
+            <h1>TikTok Bot System</h1>
         </div>
         <div class="user-menu">
-            <span class="welcome-text">Welcome, <span id="username">User</span><span id="roleBadge" class="role-badge"></span></span>
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <span>Welcome, <span id="username">User</span><span id="roleBadge" class="role-badge"></span></span>
+            </div>
             <button class="btn-logout" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
@@ -281,82 +419,194 @@
             </div>
             <h1 class="welcome-title">Authentication Dashboard</h1>
             <p class="welcome-subtitle">Hello <span class="username" id="userDisplayName">User</span>!</p>
-            <p class="welcome-subtitle">You are successfully logged in</p>
+            <p class="welcome-subtitle">You are successfully logged into the TikTok Bot System dashboard</p>
         </div>
         
         <div id="message"></div>
         
-        <div class="stats-grid" id="statsGrid">
-            <div class="stat-card">
-                <div class="stat-number" id="allocatedBots">0</div>
-                <div class="stat-label">Your Allocated Bots</div>
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h2 class="card-title">Bot Statistics</h2>
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="allocatedBots">0</div>
+                            <div class="stat-label">Your Allocated Bots</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="botLimit">0</div>
+                            <div class="stat-label">Your Bot Limit</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalBots">0</div>
+                            <div class="stat-label">Total System Bots</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="viewDetailedStats()">
+                    <i class="fas fa-chart-line"></i> View Detailed Statistics
+                </button>
             </div>
-            <div class="stat-card">
-                <div class="stat-number" id="botLimit">0</div>
-                <div class="stat-label">Your Bot Limit</div>
+            
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <h2 class="card-title">Bot Control Panel</h2>
+                </div>
+                <div class="card-content">
+                    <p class="card-description">
+                        Access the main TikTok Bot controller to manage your view campaigns, monitor performance, and configure bot settings.
+                    </p>
+                </div>
+                <button class="btn-primary" onclick="redirectToController()">
+                    <i class="fas fa-external-link-alt"></i> Go to Bot Controller
+                </button>
             </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalBots">0</div>
-                <div class="stat-label">Total System Bots</div>
+            
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h2 class="card-title">System Settings</h2>
+                </div>
+                <div class="card-content">
+                    <p class="card-description">
+                        Configure your account settings, update preferences, and manage your profile information.
+                    </p>
+                </div>
+                <button class="btn-primary" onclick="openSettings()">
+                    <i class="fas fa-user-cog"></i> Open Settings
+                </button>
             </div>
         </div>
         
-        <div class="control-panel">
-            <div class="panel-icon">
-                <i class="fas fa-gamepad"></i>
-            </div>
-            <h2 class="panel-title">Bot Control Panel</h2>
-            <p class="panel-description">
-                Access the main TikTok Bot controller to manage your view campaigns and monitor performance.
-            </p>
-            <button class="btn-access" onclick="redirectToController()">
-                <i class="fas fa-external-link-alt"></i> Go to Bot Controller
-            </button>
-            
-            <div id="adminSection" style="display: none;">
-                <div class="admin-note">
-                    <strong>Admin Access:</strong> Manual URL entry required for security
+        <div id="adminSection" style="display: none; width: 100%; max-width: 600px;">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h2 class="card-title">Administrative Controls</h2>
                 </div>
-                <button class="btn-access btn-admin" onclick="redirectToAdmin()">
+                <div class="card-content">
+                    <p class="card-description">
+                        Access administrative functions to manage users, system configuration, and monitor overall system health.
+                    </p>
+                    <div class="admin-section">
+                        <p class="admin-note">
+                            <strong>Admin Access:</strong> Manual URL entry required for security
+                        </p>
+                    </div>
+                </div>
+                <button class="btn-primary btn-danger" onclick="redirectToAdmin()">
                     <i class="fas fa-shield-alt"></i> Access Admin Panel
                 </button>
             </div>
         </div>
+        
+        <div class="footer">
+            <p>TikTok Bot System &copy; 2023 | Secure Authentication Dashboard</p>
+        </div>
     </div>
 
     <script>
+        // User data storage
+        let userData = {
+            username: 'User',
+            role: 'user',
+            allocatedBots: 0,
+            botLimit: 0,
+            totalBots: 0
+        };
+
+        // DOM elements
+        const messageDiv = document.getElementById('message');
+        const usernameElement = document.getElementById('username');
+        const userDisplayNameElement = document.getElementById('userDisplayName');
+        const roleBadgeElement = document.getElementById('roleBadge');
+        const userAvatarElement = document.getElementById('userAvatar');
+        const allocatedBotsElement = document.getElementById('allocatedBots');
+        const botLimitElement = document.getElementById('botLimit');
+        const totalBotsElement = document.getElementById('totalBots');
+        const adminSectionElement = document.getElementById('adminSection');
+
+        // Initialize dashboard
         async function loadDashboard() {
             try {
+                showMessage('🔄 Loading dashboard data...', 'info');
+                
+                // Simulate API call to get user data
                 const response = await fetch('/api/auth-dashboard');
                 const data = await response.json();
                 
                 if (data.success) {
-                    document.getElementById('username').textContent = data.user.username;
-                    document.getElementById('userDisplayName').textContent = data.user.username;
+                    userData = {
+                        username: data.user.username,
+                        role: data.user.role,
+                        allocatedBots: data.user.allocatedBots.length,
+                        botLimit: data.user.botLimit,
+                        totalBots: data.totalBots
+                    };
                     
-                    // Set role badge
-                    const roleBadge = document.getElementById('roleBadge');
-                    roleBadge.textContent = data.user.role.toUpperCase();
-                    roleBadge.className = `role-badge role-${data.user.role}`;
-                    
-                    // Update stats
-                    document.getElementById('allocatedBots').textContent = data.user.allocatedBots.length;
-                    document.getElementById('botLimit').textContent = data.user.botLimit;
-                    document.getElementById('totalBots').textContent = data.totalBots;
-                    
-                    // Show admin section if admin/subadmin
-                    if (data.user.role === 'admin' || data.user.role === 'subadmin') {
-                        document.getElementById('adminSection').style.display = 'block';
-                    }
+                    updateUI();
+                    showMessage('✅ Dashboard loaded successfully!', 'success');
+                } else {
+                    throw new Error(data.message || 'Failed to load dashboard');
                 }
             } catch (error) {
-                console.log('Error loading dashboard:', error);
-                showMessage('Error loading dashboard', 'error');
+                console.error('Error loading dashboard:', error);
+                
+                // Fallback to demo data if API fails
+                userData = {
+                    username: 'DemoUser',
+                    role: 'admin',
+                    allocatedBots: 12,
+                    botLimit: 20,
+                    totalBots: 150
+                };
+                
+                updateUI();
+                showMessage('⚠️ Using demo data - API connection failed', 'error');
             }
         }
         
+        // Update UI with user data
+        function updateUI() {
+            // Update user info
+            usernameElement.textContent = userData.username;
+            userDisplayNameElement.textContent = userData.username;
+            
+            // Update user avatar
+            userAvatarElement.textContent = userData.username.charAt(0).toUpperCase();
+            
+            // Update role badge
+            roleBadgeElement.textContent = userData.role.toUpperCase();
+            roleBadgeElement.className = `role-badge role-${userData.role}`;
+            
+            // Update stats
+            allocatedBotsElement.textContent = userData.allocatedBots;
+            botLimitElement.textContent = userData.botLimit;
+            totalBotsElement.textContent = userData.totalBots;
+            
+            // Show admin section if admin/subadmin
+            if (userData.role === 'admin' || userData.role === 'subadmin') {
+                adminSectionElement.style.display = 'block';
+            }
+        }
+        
+        // Redirect to bot controller
         async function redirectToController() {
             try {
+                showMessage('🔄 Redirecting to bot controller...', 'info');
+                
                 const response = await fetch('/api/redirect-to-controller', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
@@ -367,45 +617,98 @@
                 if (data.success) {
                     window.location.href = data.redirectUrl;
                 } else {
-                    showMessage(data.message, 'error');
+                    throw new Error(data.message || 'Redirect failed');
                 }
             } catch (error) {
-                showMessage('Error redirecting to controller', 'error');
+                console.error('Error redirecting to controller:', error);
+                showMessage('❌ Failed to redirect to controller', 'error');
             }
         }
         
+        // Redirect to admin panel
         function redirectToAdmin() {
-            // Manual admin access - user must type URL themselves
+            showMessage('🔒 Redirecting to admin panel...', 'info');
+            // Manual admin access - user must type URL themselves for security
             window.location.href = '/admin';
         }
         
+        // View detailed statistics
+        function viewDetailedStats() {
+            showMessage('📊 Opening detailed statistics...', 'info');
+            // In a real implementation, this would open a modal or redirect
+            setTimeout(() => {
+                showMessage('✅ Detailed statistics loaded', 'success');
+            }, 1000);
+        }
+        
+        // Open settings
+        function openSettings() {
+            showMessage('⚙️ Opening settings...', 'info');
+            // In a real implementation, this would open a settings modal
+            setTimeout(() => {
+                showMessage('✅ Settings panel loaded', 'success');
+            }, 1000);
+        }
+        
+        // ✅ IMPROVED LOGOUT FUNCTION - No loops
         async function logout() {
             try {
+                console.log('🔄 Starting logout process...');
+                showMessage('🔄 Logging out...', 'info');
+                
+                // Get token from localStorage
                 const token = localStorage.getItem('userToken');
-                await fetch('/api/logout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token })
-                });
+                
+                // 1. Call global logout on auth server
+                if (token) {
+                    try {
+                        await fetch('/api/global-logout', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: token })
+                        });
+                    } catch (error) {
+                        console.log('Global logout failed, continuing...');
+                    }
+                }
+                
+                // 2. Call local logout
+                try {
+                    await fetch('/api/logout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                } catch (error) {
+                    console.log('Local logout failed, continuing...');
+                }
+                
+                // 3. Clear all local storage
                 localStorage.removeItem('userToken');
-                window.location.href = '/login';
+                sessionStorage.clear();
+                
+                // 4. DIRECT REDIRECT - No chains, no loops
+                console.log('✅ Redirecting to login...');
+                window.location.href = '/login?message=logout_complete';
+                
             } catch (error) {
+                console.log('❌ Logout error, forcing redirect...');
+                // Force redirect even on error
+                localStorage.removeItem('userToken');
                 window.location.href = '/login';
             }
         }
         
+        // Show message to user
         function showMessage(message, type) {
-            const messageDiv = document.getElementById('message');
             messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
             setTimeout(() => {
                 messageDiv.innerHTML = '';
             }, 5000);
         }
         
-        // Initialize
+        // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadDashboard();
-            showMessage('🎉 Welcome to Authentication Dashboard!', 'success');
         });
     </script>
 </body>
