@@ -130,7 +130,7 @@ function writeBotInstances(instances) {
     }
 }
 
-// ✅ FIXED BOT ALLOCATION - Priority to users without bots
+// ✅ FIXED BOT ALLOCATION - Dynamic allocation
 function allocateBotsToUser(username) {
     const instances = readBotInstances();
     const users = readUsers();
@@ -142,17 +142,11 @@ function allocateBotsToUser(username) {
     
     console.log(`🔄 Allocating bots for ${username}. Available: ${availableBots.length}`);
     
-    // If no bots available, return empty
-    if (availableBots.length === 0) {
-        console.log(`❌ No bots available for ${username}`);
-        return [];
-    }
-    
     // Allocate as many as available (max 3)
     const botsToAllocate = Math.min(availableBots.length, 3);
     const selectedBots = [];
     
-    // Shuffle and select bots randomly
+    // Shuffle and select bots
     const shuffled = [...availableBots].sort(() => 0.5 - Math.random());
     
     for (let i = 0; i < botsToAllocate; i++) {
@@ -167,61 +161,10 @@ function allocateBotsToUser(username) {
     }
     
     // Update instances file
-    if (writeBotInstances(instances)) {
-        console.log(`✅ Allocated ${selectedBots.length} bots to ${username}:`, selectedBots);
-    } else {
-        console.log(`❌ Failed to save bot allocation for ${username}`);
-    }
+    writeBotInstances(instances);
     
+    console.log(`✅ Allocated ${selectedBots.length} bots to ${username}:`, selectedBots);
     return selectedBots;
-}
-
-// ✅ NEW FUNCTION: Assign bots to existing users without bots
-function assignBotsToExistingUsers() {
-    const users = readUsers();
-    const instances = readBotInstances();
-    
-    let assignedCount = 0;
-    
-    users.forEach(user => {
-        // Check if user has less than 3 bots
-        const currentBots = user.allocatedBots?.length || 0;
-        if (currentBots < 3) {
-            const availableBots = instances.filter(bot => 
-                !bot.allocatedTo && bot.enabled
-            );
-            
-            const botsNeeded = 3 - currentBots;
-            const botsToAssign = Math.min(availableBots.length, botsNeeded);
-            
-            if (botsToAssign > 0) {
-                const shuffled = [...availableBots].sort(() => 0.5 - Math.random());
-                
-                for (let i = 0; i < botsToAssign; i++) {
-                    if (!user.allocatedBots) user.allocatedBots = [];
-                    user.allocatedBots.push(shuffled[i].id);
-                    
-                    // Mark bot as allocated
-                    const botIndex = instances.findIndex(bot => bot.id === shuffled[i].id);
-                    if (botIndex !== -1) {
-                        instances[botIndex].allocatedTo = user.username;
-                        instances[botIndex].allocatedAt = new Date().toISOString();
-                    }
-                }
-                
-                assignedCount += botsToAssign;
-                console.log(`✅ Assigned ${botsToAssign} bots to existing user ${user.username}`);
-            }
-        }
-    });
-    
-    if (assignedCount > 0) {
-        writeUsers(users);
-        writeBotInstances(instances);
-        console.log(`🎯 Total ${assignedCount} bots assigned to existing users`);
-    }
-    
-    return assignedCount;
 }
 
 // 🔥 GET BOT STATISTICS
@@ -599,48 +542,46 @@ app.post('/api/logout', (req, res) => {
     res.json({ success: true, message: 'Logout successful' });
 });
 
+// =============================
 // ✅ FIXED PROMOTE USER API
+// =============================
 app.post('/api/admin/promote-user', requireSuperAdmin, (req, res) => {
     try {
         const { userId, newRole } = req.body;
         
-        console.log(`Promote user: ${userId} to ${newRole}`);
-        
         if (!['user', 'sub_admin'].includes(newRole)) {
-            return res.json({ success: false, message: '❌ Invalid role' });
+            return res.json({ success: false, message: 'Invalid role' });
         }
 
         const users = readUsers();
         const user = users.find(u => u.id === userId);
         
         if (!user) {
-            return res.json({ success: false, message: '❌ User not found' });
+            return res.json({ success: false, message: 'User not found' });
         }
 
         // Don't allow demoting super admin
         if (user.role === 'super_admin') {
-            return res.json({ success: false, message: '❌ Cannot modify Super Admin' });
+            return res.json({ success: false, message: 'Cannot modify Super Admin' });
         }
 
-        const oldRole = user.role;
         user.role = newRole;
         
         if (writeUsers(users)) {
             res.json({ 
                 success: true, 
-                message: `✅ User ${user.username} ${newRole === 'sub_admin' ? 'promoted to Sub Admin' : 'demoted to User'}`,
+                message: `User ${user.username} ${newRole === 'sub_admin' ? 'promoted to Sub Admin' : 'demoted to User'}`,
                 user: {
                     id: user.id,
                     username: user.username,
                     role: user.role
                 }
             });
-            console.log(`✅ User ${user.username} role changed from ${oldRole} to ${newRole}`);
         } else {
-            res.json({ success: false, message: '❌ Failed to update user' });
+            res.json({ success: false, message: 'Failed to update user' });
         }
     } catch (error) {
-        console.error('❌ Promote user error:', error);
+        console.error('Promote user error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -726,13 +667,13 @@ app.post('/api/admin/users/:userId/bots', requireAdmin, (req, res) => {
     }
 });
 
-// ✅ FIXED BOT REMOVAL API
+// =============================
+// ✅ FIXED BOT MANAGEMENT API
+// =============================
 app.post('/api/admin/users/:userId/manage-bots', requireAdmin, (req, res) => {
     try {
         const { userId } = req.params;
         const { action, botId } = req.body;
-        
-        console.log(`Bot management: ${action} for user ${userId}, bot: ${botId}`);
         
         const users = readUsers();
         const instances = readBotInstances();
@@ -770,19 +711,17 @@ app.post('/api/admin/users/:userId/manage-bots', requireAdmin, (req, res) => {
             if (writeUsers(users) && writeBotInstances(instances)) {
                 res.json({ 
                     success: true, 
-                    message: `✅ Bot allocated to ${user.username}`,
+                    message: `Bot allocated to ${user.username}`,
                     allocatedBots: user.allocatedBots
                 });
             } else {
-                res.json({ success: false, message: '❌ Failed to update databases' });
+                res.json({ success: false, message: 'Failed to update databases' });
             }
 
         } else if (action === 'remove_bot' && botId) {
-            console.log(`Removing bot ${botId} from user ${user.username}`);
-            
             // Check if user has this bot
             if (!user.allocatedBots.includes(botId)) {
-                return res.json({ success: false, message: '❌ User does not have this bot' });
+                return res.json({ success: false, message: 'User does not have this bot' });
             }
             
             // Remove from user
@@ -793,27 +732,23 @@ app.post('/api/admin/users/:userId/manage-bots', requireAdmin, (req, res) => {
             if (botIndex !== -1) {
                 instances[botIndex].allocatedTo = null;
                 instances[botIndex].allocatedAt = null;
-                console.log(`✅ Bot ${botId} freed from user ${user.username}`);
             }
 
-            const usersWritten = writeUsers(users);
-            const instancesWritten = writeBotInstances(instances);
-            
-            if (usersWritten && instancesWritten) {
+            if (writeUsers(users) && writeBotInstances(instances)) {
                 res.json({ 
                     success: true, 
-                    message: `✅ Bot removed from ${user.username}`,
+                    message: `Bot removed from ${user.username}`,
                     allocatedBots: user.allocatedBots
                 });
             } else {
-                res.json({ success: false, message: '❌ Failed to update databases' });
+                res.json({ success: false, message: 'Failed to update databases' });
             }
         } else {
-            res.json({ success: false, message: '❌ Invalid action' });
+            res.json({ success: false, message: 'Invalid action' });
         }
     } catch (error) {
-        console.error('❌ Bot management error:', error);
-        res.status(500).json({ success: false, message: 'Server error: ' + error.message });
+        console.error('Bot management error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
@@ -974,12 +909,9 @@ app.get('/api/admin/keys', requireAdmin, (req, res) => {
     }
 });
 
-// ✅ FIXED DELETE KEY API
 app.delete('/api/admin/keys/:key', requireAdmin, (req, res) => {
     try {
         const { key } = req.params;
-        console.log(`Deleting key: ${key}`);
-        
         let keys = readRegistrationKeys();
         const initialLength = keys.length;
         
@@ -987,16 +919,14 @@ app.delete('/api/admin/keys/:key', requireAdmin, (req, res) => {
         
         if (keys.length < initialLength) {
             if (writeRegistrationKeys(keys)) {
-                console.log(`✅ Key ${key} deleted successfully`);
-                res.json({ success: true, message: '✅ Key deleted successfully' });
+                res.json({ success: true, message: 'Key deleted successfully' });
             } else {
-                res.json({ success: false, message: '❌ Failed to delete key' });
+                res.json({ success: false, message: 'Failed to delete key' });
             }
         } else {
-            res.json({ success: false, message: '❌ Key not found' });
+            res.json({ success: false, message: 'Key not found' });
         }
     } catch (error) {
-        console.error('❌ Delete key error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -1084,44 +1014,24 @@ app.post('/api/admin/instances', requireAdmin, (req, res) => {
     }
 });
 
-// ✅ FIXED DELETE BOT INSTANCE API
 app.delete('/api/admin/instances/:id', requireAdmin, (req, res) => {
     try {
         const { id } = req.params;
-        console.log(`Deleting bot instance: ${id}`);
-        
         let instances = readBotInstances();
         const initialLength = instances.length;
-        
-        // Find instance to get details
-        const instanceToDelete = instances.find(inst => inst.id === id);
         
         instances = instances.filter(inst => inst.id !== id);
         
         if (instances.length < initialLength) {
             if (writeBotInstances(instances)) {
-                console.log(`✅ Bot instance ${id} deleted successfully`);
-                
-                // If instance was allocated to a user, remove from user's allocated bots
-                if (instanceToDelete && instanceToDelete.allocatedTo) {
-                    const users = readUsers();
-                    const user = users.find(u => u.username === instanceToDelete.allocatedTo);
-                    if (user && user.allocatedBots) {
-                        user.allocatedBots = user.allocatedBots.filter(botId => botId !== id);
-                        writeUsers(users);
-                        console.log(`✅ Also removed from user ${instanceToDelete.allocatedTo}`);
-                    }
-                }
-                
-                res.json({ success: true, message: '✅ Bot instance deleted successfully' });
+                res.json({ success: true, message: 'Bot instance deleted successfully' });
             } else {
-                res.json({ success: false, message: '❌ Failed to delete instance' });
+                res.json({ success: false, message: 'Failed to delete instance' });
             }
         } else {
-            res.json({ success: false, message: '❌ Instance not found' });
+            res.json({ success: false, message: 'Instance not found' });
         }
     } catch (error) {
-        console.error('❌ Delete instance error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -1300,5 +1210,4 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔧 Bot Management API: Enhanced`);
     console.log(`🔄 Redirect Loops: FIXED`);
     console.log(`📦 Bulk Bot Addition: Available`);
-    console.log(`🔧 Bot Distribution Logic: IMPROVED`);
 });
