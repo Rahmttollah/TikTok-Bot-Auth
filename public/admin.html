@@ -426,6 +426,12 @@
             color: var(--danger);
         }
         
+        .alert.info {
+            background: rgba(66, 153, 225, 0.2);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+        
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -504,6 +510,27 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 6px;
             margin-bottom: 8px;
+        }
+
+        /* Instance Status Styles */
+        .instance-available {
+            color: var(--success);
+            font-weight: bold;
+        }
+        
+        .instance-allocated {
+            color: var(--danger);
+            font-weight: bold;
+        }
+        
+        .instance-item.allocated {
+            border: 2px solid var(--danger);
+            background: rgba(245, 101, 101, 0.1);
+        }
+        
+        .instance-item.available {
+            border: 2px solid var(--success);
+            background: rgba(72, 187, 120, 0.1);
         }
         
         /* Mobile Responsive */
@@ -946,25 +973,30 @@
             }
         }
         
+        // ✅ FIXED DELETE KEY FUNCTION
         async function deleteKey(key) {
-            if (!confirm('Are you sure you want to delete this key?')) {
+            if (!confirm('Are you sure you want to delete this registration key?')) {
                 return;
             }
             
             try {
-                const data = await safeFetch(`/api/admin/keys/${key}`, {
+                showMessage('Deleting key...', 'info');
+                
+                const response = await fetch(`/api/admin/keys/${key}`, {
                     method: 'DELETE'
                 });
                 
+                const data = await response.json();
+                
                 if (data.success) {
-                    showMessage('Key deleted successfully!', 'success');
+                    showMessage('✅ Key deleted successfully!', 'success');
                     loadKeys();
                     updateStats();
                 } else {
-                    showMessage(data.message, 'error');
+                    showMessage(`❌ ${data.message}`, 'error');
                 }
             } catch (error) {
-                showMessage('Error deleting key: ' + error.message, 'error');
+                showMessage('❌ Error deleting key: ' + error.message, 'error');
             }
         }
         
@@ -1044,35 +1076,43 @@
             }
         }
         
+        // ✅ FIXED PROMOTE USER FUNCTION
         async function promoteUser(userId, username, currentRole) {
             const newRole = currentRole === 'user' ? 'sub_admin' : 'user';
-            const confirmMessage = `Are you sure you want to ${newRole === 'sub_admin' ? 'promote' : 'demote'} ${username} to ${newRole}?`;
+            const action = newRole === 'sub_admin' ? 'promote' : 'demote';
+            
+            const confirmMessage = `Are you sure you want to ${action} ${username} to ${newRole}?`;
             
             if (!confirm(confirmMessage)) {
                 return;
             }
             
             try {
-                const data = await safeFetch('/api/admin/promote-user', {
+                showMessage(`${action === 'promote' ? 'Promoting' : 'Demoting'} user...`, 'info');
+                
+                const response = await fetch('/api/admin/promote-user', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         userId: userId,
                         newRole: newRole
                     })
                 });
                 
+                const data = await response.json();
+                
                 if (data.success) {
-                    showMessage(data.message, 'success');
-                    loadUsers();
+                    showMessage(`✅ ${data.message}`, 'success');
+                    loadUsers(); // Refresh user list
                 } else {
-                    showMessage(data.message, 'error');
+                    showMessage(`❌ ${data.message}`, 'error');
                 }
             } catch (error) {
-                showMessage('Error promoting user: ' + error.message, 'error');
+                showMessage('❌ Error: ' + error.message, 'error');
             }
         }
         
-        // ✅ FIXED BOT MANAGEMENT MODAL
+        // ✅ FIXED BOT MANAGEMENT FUNCTIONS
         async function manageUserBots(userId, username) {
             try {
                 showMessage('Loading bot details...', 'info');
@@ -1180,10 +1220,13 @@
             }
         }
 
+        // ✅ FIXED BOT MANAGEMENT FUNCTIONS
         async function removeBotFromUser(userId, botId, username) {
             if (!confirm(`Are you sure you want to remove this bot from ${username}?`)) return;
             
             try {
+                showMessage('Removing bot...', 'info');
+                
                 const response = await fetch(`/api/admin/users/${userId}/manage-bots`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1193,11 +1236,14 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showMessage(`✅ Bot removed from ${username}!`, 'success');
-                    await refreshBotModal(userId, username); // Refresh the modal
-                    loadUsers(); // Refresh user list
+                    showMessage(`✅ ${data.message}`, 'success');
+                    // Refresh the modal and user list
+                    setTimeout(() => {
+                        manageUserBots(userId, username);
+                        loadUsers();
+                    }, 1000);
                 } else {
-                    showMessage('❌ ' + data.message, 'error');
+                    showMessage(`❌ ${data.message}`, 'error');
                 }
             } catch (error) {
                 showMessage('❌ Error: ' + error.message, 'error');
@@ -1271,16 +1317,18 @@
                 instancesList.innerHTML = '';
                 
                 data.instances.forEach(instance => {
+                    const isAllocated = instance.allocatedTo && instance.allocatedTo !== 'Available';
                     const instanceItem = document.createElement('div');
-                    instanceItem.className = 'instance-item';
+                    instanceItem.className = `instance-item ${isAllocated ? 'allocated' : 'available'}`;
                     instanceItem.innerHTML = `
                         <div class="instance-info">
                             <div class="instance-url">${instance.url}</div>
                             <div class="instance-meta">
                                 Added: ${new Date(instance.addedAt).toLocaleDateString()} | 
                                 ID: ${instance.id.substring(0, 8)}... |
-                                Status: ${instance.enabled ? 'Enabled' : 'Disabled'}
-                                ${instance.allocatedTo ? ` | Allocated to: ${instance.allocatedTo}` : ' | Available'}
+                                Status: <span class="${isAllocated ? 'instance-allocated' : 'instance-available'}">
+                                    ${isAllocated ? `Allocated to: ${instance.allocatedTo}` : 'Available'}
+                                </span>
                             </div>
                         </div>
                         <div class="instance-actions">
@@ -1297,25 +1345,30 @@
             }
         }
         
+        // ✅ FIXED DELETE INSTANCE FUNCTION
         async function deleteInstance(instanceId) {
             if (!confirm('Are you sure you want to delete this bot instance?')) {
                 return;
             }
             
             try {
-                const data = await safeFetch(`/api/admin/instances/${instanceId}`, {
+                showMessage('Deleting instance...', 'info');
+                
+                const response = await fetch(`/api/admin/instances/${instanceId}`, {
                     method: 'DELETE'
                 });
+                
+                const data = await response.json();
                 
                 if (data.success) {
                     showMessage('✅ Bot instance deleted successfully!', 'success');
                     loadInstances();
                     updateStats();
                 } else {
-                    showMessage(data.message, 'error');
+                    showMessage(`❌ ${data.message}`, 'error');
                 }
             } catch (error) {
-                showMessage('Error deleting instance: ' + error.message, 'error');
+                showMessage('❌ Error deleting instance: ' + error.message, 'error');
             }
         }
         
