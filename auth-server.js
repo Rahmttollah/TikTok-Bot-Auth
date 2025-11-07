@@ -4,40 +4,11 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const axios = require('axios');
-
-// Firebase Client SDK
-const { initializeApp } = require('firebase/app');
-const { 
-  getFirestore, 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where,
-  addDoc 
-} = require('firebase/firestore');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-
-// Initialize Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyDDtTxl5lZ1Crerbk0C26teR1jNvrHQCR0",
-  authDomain: "tiktok-bot-auth.firebaseapp.com",
-  projectId: "tiktok-bot-auth",
-  storageBucket: "tiktok-bot-auth.firebasestorage.app",
-  messagingSenderId: "214610166671",
-  appId: "1:214610166671:web:777a51a7663e83e131c1fa",
-  measurementId: "G-ZD7VP1L36E"
-};
-
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
 
 // Middleware
 app.use(cors());
@@ -65,128 +36,100 @@ const SUPER_ADMIN = {
     password: process.env.SUPER_ADMIN_PASSWORD || 'Rahmttollah6677'
 };
 
-// =============================
-// ✅ FIREBASE DATABASE FUNCTIONS
-// =============================
+// File paths
+const usersFile = path.join(__dirname, 'users.json');
+const tokensFile = path.join(__dirname, 'tokens.json');
+const registrationKeysFile = path.join(__dirname, 'registration-keys.json');
+const instancesFile = path.join(__dirname, 'bot-instances.json');
 
-// Users Collection
-async function readUsers() {
+// Initialize files
+function initializeFiles() {
+    if (!fs.existsSync(usersFile)) {
+        fs.writeFileSync(usersFile, JSON.stringify([], null, 2));
+    }
+    if (!fs.existsSync(tokensFile)) {
+        fs.writeFileSync(tokensFile, JSON.stringify([], null, 2));
+    }
+    if (!fs.existsSync(registrationKeysFile)) {
+        fs.writeFileSync(registrationKeysFile, JSON.stringify([], null, 2));
+    }
+    if (!fs.existsSync(instancesFile)) {
+        fs.writeFileSync(instancesFile, JSON.stringify([], null, 2));
+    }
+}
+
+// Read/write functions
+function readUsers() {
     try {
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const users = [];
-        usersSnapshot.forEach(doc => {
-            users.push({ id: doc.id, ...doc.data() });
-        });
-        return users;
+        return JSON.parse(fs.readFileSync(usersFile, 'utf8'));
     } catch (error) {
-        console.error('Error reading users:', error);
         return [];
     }
 }
 
-async function addUser(user) {
+function writeUsers(users) {
     try {
-        await setDoc(doc(db, 'users', user.id), user);
+        fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
         return true;
     } catch (error) {
-        console.error('Error adding user:', error);
         return false;
     }
 }
 
-async function updateUser(userId, updates) {
+function readTokens() {
     try {
-        await updateDoc(doc(db, 'users', userId), updates);
-        return true;
+        return JSON.parse(fs.readFileSync(tokensFile, 'utf8'));
     } catch (error) {
-        console.error('Error updating user:', error);
-        return false;
-    }
-}
-
-// Bot Instances Collection
-async function readBotInstances() {
-    try {
-        const instancesSnapshot = await getDocs(collection(db, 'botInstances'));
-        const instances = [];
-        instancesSnapshot.forEach(doc => {
-            instances.push({ id: doc.id, ...doc.data() });
-        });
-        return instances;
-    } catch (error) {
-        console.error('Error reading bot instances:', error);
         return [];
     }
 }
 
-async function addBotInstance(instance) {
+function writeTokens(tokens) {
     try {
-        await setDoc(doc(db, 'botInstances', instance.id), instance);
+        fs.writeFileSync(tokensFile, JSON.stringify(tokens, null, 2));
         return true;
     } catch (error) {
-        console.error('Error adding bot instance:', error);
         return false;
     }
 }
 
-async function updateBotInstance(instanceId, updates) {
+function readRegistrationKeys() {
     try {
-        await updateDoc(doc(db, 'botInstances', instanceId), updates);
-        return true;
+        return JSON.parse(fs.readFileSync(registrationKeysFile, 'utf8'));
     } catch (error) {
-        console.error('Error updating bot instance:', error);
-        return false;
-    }
-}
-
-async function deleteBotInstance(instanceId) {
-    try {
-        await deleteDoc(doc(db, 'botInstances', instanceId));
-        return true;
-    } catch (error) {
-        console.error('Error deleting bot instance:', error);
-        return false;
-    }
-}
-
-// Registration Keys Collection
-async function readRegistrationKeys() {
-    try {
-        const keysSnapshot = await getDocs(collection(db, 'registrationKeys'));
-        const keys = [];
-        keysSnapshot.forEach(doc => {
-            keys.push({ id: doc.id, ...doc.data() });
-        });
-        return keys;
-    } catch (error) {
-        console.error('Error reading registration keys:', error);
         return [];
     }
 }
 
-async function addRegistrationKey(keyData) {
+function writeRegistrationKeys(keys) {
     try {
-        await setDoc(doc(db, 'registrationKeys', keyData.key), keyData);
+        fs.writeFileSync(registrationKeysFile, JSON.stringify(keys, null, 2));
         return true;
     } catch (error) {
-        console.error('Error adding registration key:', error);
         return false;
     }
 }
 
-async function deleteRegistrationKey(key) {
+function readBotInstances() {
     try {
-        await deleteDoc(doc(db, 'registrationKeys', key));
+        if (fs.existsSync(instancesFile)) {
+            return JSON.parse(fs.readFileSync(instancesFile, 'utf8'));
+        }
+    } catch (error) {
+        console.log('Error reading bot instances:', error);
+    }
+    return [];
+}
+
+function writeBotInstances(instances) {
+    try {
+        fs.writeFileSync(instancesFile, JSON.stringify(instances, null, 2));
         return true;
     } catch (error) {
-        console.error('Error deleting registration key:', error);
+        console.log('Error writing bot instances:', error);
         return false;
     }
 }
-
-// =============================
-// ✅ EXISTING FUNCTIONS (UNCHANGED - Only database calls updated)
-// =============================
 
 // ✅ BOT STATUS CHECKING SYSTEM
 async function checkBotStatus(instance) {
@@ -222,9 +165,9 @@ async function checkBotStatus(instance) {
 }
 
 // ✅ FIXED BOT ALLOCATION - Priority to users without bots
-async function allocateBotsToUser(username) {
-    const instances = await readBotInstances();
-    const users = await readUsers();
+function allocateBotsToUser(username) {
+    const instances = readBotInstances();
+    const users = readUsers();
     
     // Get available bots (not allocated AND enabled)
     const availableBots = instances.filter(bot => 
@@ -250,20 +193,27 @@ async function allocateBotsToUser(username) {
         selectedBots.push(shuffled[i].id);
         
         // Mark bot as allocated
-        await updateBotInstance(shuffled[i].id, {
-            allocatedTo: username,
-            allocatedAt: new Date().toISOString()
-        });
+        const botIndex = instances.findIndex(bot => bot.id === shuffled[i].id);
+        if (botIndex !== -1) {
+            instances[botIndex].allocatedTo = username;
+            instances[botIndex].allocatedAt = new Date().toISOString();
+        }
     }
     
-    console.log(`✅ Allocated ${selectedBots.length} bots to ${username}:`, selectedBots);
+    // Update instances file
+    if (writeBotInstances(instances)) {
+        console.log(`✅ Allocated ${selectedBots.length} bots to ${username}:`, selectedBots);
+    } else {
+        console.log(`❌ Failed to save bot allocation for ${username}`);
+    }
+    
     return selectedBots;
 }
 
-// ✅ AUTO-DISTRIBUTE BOTS TO ALL USERS
-async function autoDistributeBotsToAllUsers() {
-    const users = await readUsers();
-    const instances = await readBotInstances();
+// ✅ NEW FUNCTION: Auto-distribute bots to all users who need them
+function autoDistributeBotsToAllUsers() {
+    const users = readUsers();
+    const instances = readBotInstances();
     
     let totalAssigned = 0;
     const distributionLog = [];
@@ -311,14 +261,15 @@ async function autoDistributeBotsToAllUsers() {
                     const bot = availableBots[botIndex];
                     
                     // Add bot to user
-                    const updatedBots = [...(user.allocatedBots || []), bot.id];
-                    await updateUser(user.id, { allocatedBots: updatedBots });
+                    if (!user.allocatedBots) user.allocatedBots = [];
+                    user.allocatedBots.push(bot.id);
                     
                     // Mark bot as allocated
-                    await updateBotInstance(bot.id, {
-                        allocatedTo: user.username,
-                        allocatedAt: new Date().toISOString()
-                    });
+                    const instanceIndex = instances.findIndex(inst => inst.id === bot.id);
+                    if (instanceIndex !== -1) {
+                        instances[instanceIndex].allocatedTo = user.username;
+                        instances[instanceIndex].allocatedAt = new Date().toISOString();
+                    }
                     
                     distributionLog.push({
                         user: user.username,
@@ -334,23 +285,32 @@ async function autoDistributeBotsToAllUsers() {
         }
     }
     
+    // Save changes
     if (totalAssigned > 0) {
-        console.log(`🎉 Successfully assigned ${totalAssigned} bots to ${distributionLog.length} users`);
-        return { 
-            success: true, 
-            assigned: totalAssigned, 
-            message: `Assigned ${totalAssigned} bots to users`,
-            log: distributionLog 
-        };
+        const usersSaved = writeUsers(users);
+        const instancesSaved = writeBotInstances(instances);
+        
+        if (usersSaved && instancesSaved) {
+            console.log(`🎉 Successfully assigned ${totalAssigned} bots to ${distributionLog.length} users`);
+            return { 
+                success: true, 
+                assigned: totalAssigned, 
+                message: `Assigned ${totalAssigned} bots to users`,
+                log: distributionLog 
+            };
+        } else {
+            console.log('❌ Failed to save distribution changes');
+            return { success: false, assigned: 0, message: 'Save failed' };
+        }
     }
     
     return { success: true, assigned: 0, message: 'No assignments needed' };
 }
 
 // 🔥 GET BOT STATISTICS
-async function getBotStatistics() {
-    const instances = await readBotInstances();
-    const users = await readUsers();
+function getBotStatistics() {
+    const instances = readBotInstances();
+    const users = readUsers();
     
     const totalBots = instances.length;
     const enabledBots = instances.filter(bot => bot.enabled).length;
@@ -425,63 +385,76 @@ function requireSuperAdmin(req, res, next) {
     }
 }
 
-// =============================
-// ✅ ROUTES
-// =============================
-
-// ✅ ROOT ROUTE
+// ✅ FIXED ROOT ROUTE - No redirect loops
 app.get('/', (req, res) => {
+    // Clear any problematic sessions first
     if (req.query.logout === 'true') {
         req.session.destroy();
         return res.redirect('/login');
     }
     
     if (req.session.user) {
+        // If user is admin, show admin dashboard
         if (req.session.user.role === 'super_admin' || req.session.user.role === 'sub_admin') {
             return res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
         } else {
-            const token = generateToken();
-            return res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${token}`);
+            // Normal user - redirect to main controller with token
+            const token = getUserToken(req.session.user.username);
+            if (token) {
+                return res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${token}`);
+            }
         }
     }
+    // No user session - show login page directly
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// ✅ LOGIN ROUTE
+// ✅ FIXED LOGIN ROUTE - Simple and direct
 app.get('/login', (req, res) => {
+    // If already logged in, redirect appropriately
     if (req.session.user) {
         if (req.session.user.role === 'super_admin' || req.session.user.role === 'sub_admin') {
             return res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
         } else {
-            const token = generateToken();
-            return res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${token}`);
+            const token = getUserToken(req.session.user.username);
+            if (token) {
+                return res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${token}`);
+            }
         }
     }
+    // Always serve login page directly
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 app.get('/register', (req, res) => {
     if (req.session.user) {
-        res.redirect(`${MAIN_CONTROLLER_URL}/dashboard`);
+        res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${getUserToken(req.session.user.username)}`);
     } else {
         res.sendFile(path.join(__dirname, 'public', 'register.html'));
     }
 });
 
-// ✅ ADMIN ROUTE
+// ✅ FIXED ADMIN ROUTE
 app.get('/admin', (req, res) => {
     if (!req.session.user) {
         return res.redirect('/login');
     }
     
+    // Only allow if user is admin
     if (req.session.user.role === 'super_admin' || req.session.user.role === 'sub_admin') {
         res.sendFile(path.join(__dirname, 'public', 'admin.html'));
     } else {
-        res.redirect(`${MAIN_CONTROLLER_URL}/dashboard`);
+        // Normal users get redirected to main controller
+        const token = getUserToken(req.session.user.username);
+        if (token) {
+            res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${token}`);
+        } else {
+            res.redirect('/login');
+        }
     }
 });
 
-// ✅ DASHBOARD ROUTE
+// ✅ FIXED DASHBOARD ROUTE
 app.get('/dashboard', (req, res) => {
     if (!req.session.user) {
         return res.redirect('/login');
@@ -491,11 +464,26 @@ app.get('/dashboard', (req, res) => {
     if (userType === 'admin' && (req.session.user.role === 'super_admin' || req.session.user.role === 'sub_admin')) {
         res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
     } else {
-        res.redirect(`${MAIN_CONTROLLER_URL}/dashboard`);
+        // Normal user - redirect to main controller
+        const token = getUserToken(req.session.user.username);
+        if (token) {
+            res.redirect(`${MAIN_CONTROLLER_URL}/dashboard?token=${token}`);
+        } else {
+            res.redirect('/login');
+        }
     }
 });
 
+// Helper function to get user token
+function getUserToken(username) {
+    const tokens = readTokens();
+    const userToken = tokens.find(t => t.username === username && t.isActive && new Date(t.expiresAt) > new Date());
+    return userToken ? userToken.token : '';
+}
+
+// =============================
 // ✅ USER REGISTER API
+// =============================
 app.post('/api/register', async (req, res) => {
     try {
         const { username, email, password, registrationKey } = req.body;
@@ -504,14 +492,14 @@ app.post('/api/register', async (req, res) => {
             return res.json({ success: false, message: 'All fields are required' });
         }
 
-        const keys = await readRegistrationKeys();
+        const keys = readRegistrationKeys();
         const validKey = keys.find(k => k.key === registrationKey && k.used === false);
         
         if (!validKey) {
             return res.json({ success: false, message: 'Invalid or used registration key' });
         }
 
-        const users = await readUsers();
+        const users = readUsers();
         if (users.find(u => u.username === username)) {
             return res.json({ success: false, message: 'Username already exists' });
         }
@@ -522,30 +510,27 @@ app.post('/api/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         // 🔥 AUTO BOT ALLOCATION - 3 random bots
-        const allocatedBots = await allocateBotsToUser(username);
+        const allocatedBots = allocateBotsToUser(username);
         
         const newUser = {
             id: Date.now().toString(),
             username,
             email,
             password: hashedPassword,
-            role: 'user',
-            allocatedBots: allocatedBots,
+            role: 'user', // Default role
+            allocatedBots: allocatedBots, // 3 allocated bots
             createdAt: new Date().toISOString(),
             isActive: true
         };
 
-        // Add user to Firebase
-        const userAdded = await addUser(newUser);
+        users.push(newUser);
         
-        if (userAdded) {
-            // Update registration key usage
-            await updateDoc(doc(db, 'registrationKeys', validKey.key), {
-                used: true,
-                usedBy: username,
-                usedAt: new Date().toISOString()
-            });
+        validKey.used = true;
+        validKey.usedBy = username;
+        validKey.usedAt = new Date().toISOString();
+        writeRegistrationKeys(keys);
 
+        if (writeUsers(users)) {
             res.json({ 
                 success: true, 
                 message: 'Registration successful! 3 bots allocated to your account.',
@@ -555,12 +540,13 @@ app.post('/api/register', async (req, res) => {
             res.json({ success: false, message: 'Registration failed' });
         }
     } catch (error) {
-        console.error('Registration error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// ✅ USER LOGIN API
+// =============================
+// ✅ USER LOGIN API - FIXED SUPER ADMIN
+// =============================
 app.post('/api/login', async (req, res) => {
     try {
         const { username, password, rememberMe } = req.body;
@@ -569,11 +555,22 @@ app.post('/api/login', async (req, res) => {
             return res.json({ success: false, message: 'Username and password required' });
         }
 
-        // 🔥 Check SUPER ADMIN first
+        // 🔥 FIX: Check SUPER ADMIN first (hardcoded check)
         if (username === SUPER_ADMIN.username) {
             if (password === SUPER_ADMIN.password) {
                 // SUPER ADMIN login successful
                 const token = generateToken();
+                const tokens = readTokens();
+                
+                tokens.push({
+                    token: token,
+                    username: username,
+                    createdAt: new Date().toISOString(),
+                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                    isActive: true
+                });
+                
+                writeTokens(tokens);
 
                 req.session.user = { 
                     username: username,
@@ -600,7 +597,7 @@ app.post('/api/login', async (req, res) => {
         }
 
         // Normal user login
-        const users = await readUsers();
+        const users = readUsers();
         const user = users.find(u => u.username === username && u.isActive);
         
         if (!user) {
@@ -614,6 +611,17 @@ app.post('/api/login', async (req, res) => {
         }
 
         const token = generateToken();
+        const tokens = readTokens();
+        
+        tokens.push({
+            token: token,
+            username: user.username,
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            isActive: true
+        });
+        
+        writeTokens(tokens);
 
         req.session.user = { 
             username: user.username,
@@ -647,7 +655,48 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// ✅ LOGOUT API
+// =============================
+// ✅ FIXED GLOBAL LOGOUT API
+// =============================
+app.post('/api/global-logout', (req, res) => {
+    try {
+        const { token } = req.body;
+        
+        console.log('🔒 Global logout requested for token:', token ? 'yes' : 'no');
+        
+        if (token) {
+            // Invalidate token immediately
+            const tokens = readTokens();
+            const updatedTokens = tokens.filter(t => t.token !== token);
+            writeTokens(updatedTokens);
+            console.log('✅ Token invalidated');
+        }
+        
+        // Destroy session
+        req.session.destroy((err) => {
+            if (err) {
+                console.log('❌ Session destroy error:', err);
+            } else {
+                console.log('✅ Session destroyed');
+            }
+        });
+        
+        res.json({ 
+            success: true, 
+            message: 'Logged out from all systems',
+            redirect_url: '/login?message=logged_out_success'
+        });
+    } catch (error) {
+        console.log('❌ Global logout error:', error);
+        // Still return success to break loops
+        res.json({ 
+            success: true, 
+            redirect_url: '/login'
+        });
+    }
+});
+
+// ✅ FIXED SIMPLE LOGOUT
 app.post('/api/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) {
@@ -662,248 +711,17 @@ app.post('/api/logout', (req, res) => {
     });
 });
 
-// ✅ ADMIN USERS API
-app.get('/api/admin/users', requireAdmin, async (req, res) => {
-    try {
-        const users = await readUsers();
-        const safeUsers = users.map(user => ({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            allocatedBots: user.allocatedBots || [],
-            createdAt: user.createdAt,
-            isActive: user.isActive
-        }));
-        res.json({ success: true, users: safeUsers });
-    } catch (error) {
-        console.error('Error fetching users:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
+// ✅ NEW: FORCE LOGOUT ROUTE (for testing)
+app.get('/force-logout', (req, res) => {
+    req.session.destroy((err) => {
+        res.redirect('/login?message=forced_logout');
+    });
 });
 
-// ✅ ADD BOT INSTANCE API
-app.post('/api/admin/instances', requireAdmin, async (req, res) => {
-    try {
-        const { url } = req.body;
-        
-        if (!url) {
-            return res.json({ success: false, message: 'URL required' });
-        }
-        
-        try {
-            new URL(url);
-        } catch (error) {
-            return res.json({ success: false, message: 'Invalid URL' });
-        }
-
-        const instances = await readBotInstances();
-        
-        if (instances.find(inst => inst.url === url)) {
-            return res.json({ success: false, message: 'Instance already exists' });
-        }
-
-        const newInstance = { 
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-            url: url.trim(), 
-            addedAt: new Date().toISOString(), 
-            enabled: true,
-            allocatedTo: null,
-            allocatedAt: null
-        };
-
-        // Add to Firebase
-        const instanceAdded = await addBotInstance(newInstance);
-        
-        if (instanceAdded) {
-            console.log(`✅ New bot instance added: ${newInstance.url}`);
-            
-            // 🔥 AUTO DISTRIBUTE TO USERS AFTER ADDING NEW BOT
-            const distributionResult = await autoDistributeBotsToAllUsers();
-            
-            let message = 'Bot instance added successfully';
-            if (distributionResult.assigned > 0) {
-                message += ` and ${distributionResult.assigned} bots assigned to users`;
-            }
-            
-            res.json({ 
-                success: true, 
-                message: message,
-                instance: newInstance,
-                distribution: distributionResult
-            });
-        } else {
-            res.json({ success: false, message: 'Failed to add instance' });
-        }
-    } catch (error) {
-        console.log('Error adding instance:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ DELETE BOT INSTANCE API
-app.delete('/api/admin/instances/:id', requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        console.log(`🗑️ Deleting bot instance: ${id}`);
-        
-        const instances = await readBotInstances();
-        const users = await readUsers();
-        
-        const instanceToDelete = instances.find(inst => inst.id === id);
-        
-        if (!instanceToDelete) {
-            return res.json({ success: false, message: '❌ Instance not found' });
-        }
-        
-        // 1. Remove from ALL users' allocatedBots
-        let usersUpdated = 0;
-        for (const user of users) {
-            if (user.allocatedBots && user.allocatedBots.includes(id)) {
-                const updatedBots = user.allocatedBots.filter(botId => botId !== id);
-                await updateUser(user.id, { allocatedBots: updatedBots });
-                usersUpdated++;
-                console.log(`✅ Removed bot ${id} from user ${user.username}`);
-            }
-        }
-        
-        // 2. Delete instance from Firebase
-        const instanceDeleted = await deleteBotInstance(id);
-        
-        if (instanceDeleted) {
-            console.log(`✅ Bot instance ${id} deleted successfully. Removed from ${usersUpdated} users.`);
-            res.json({ 
-                success: true, 
-                message: `✅ Bot instance deleted successfully. Removed from ${usersUpdated} users.`
-            });
-        } else {
-            res.json({ success: false, message: '❌ Failed to delete instance' });
-        }
-    } catch (error) {
-        console.error('❌ Delete instance error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ GENERATE REGISTRATION KEY API
-app.post('/api/admin/generate-key', requireAdmin, async (req, res) => {
-    try {
-        const { note } = req.body;
-        const key = generateRegistrationKey();
-        
-        const keyData = {
-            key: key,
-            note: note || 'Generated by admin',
-            createdAt: new Date().toISOString(),
-            used: false,
-            usedBy: null,
-            usedAt: null
-        };
-        
-        const keyAdded = await addRegistrationKey(keyData);
-        
-        if (keyAdded) {
-            res.json({ success: true, key: key, message: 'Registration key generated' });
-        } else {
-            res.json({ success: false, message: 'Failed to generate key' });
-        }
-    } catch (error) {
-        console.error('Error generating key:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ GET REGISTRATION KEYS API
-app.get('/api/admin/keys', requireAdmin, async (req, res) => {
-    try {
-        const keys = await readRegistrationKeys();
-        res.json({ success: true, keys: keys });
-    } catch (error) {
-        console.error('Error fetching keys:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ DELETE REGISTRATION KEY API
-app.delete('/api/admin/keys/:key', requireAdmin, async (req, res) => {
-    try {
-        const { key } = req.params;
-        
-        const keyDeleted = await deleteRegistrationKey(key);
-        
-        if (keyDeleted) {
-            res.json({ success: true, message: 'Key deleted successfully' });
-        } else {
-            res.json({ success: false, message: 'Key not found or deletion failed' });
-        }
-    } catch (error) {
-        console.error('Error deleting key:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ TOGGLE USER API
-app.post('/api/admin/users/:id/toggle', requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const users = await readUsers();
-        const user = users.find(u => u.id === id);
-        
-        if (user) {
-            const updated = await updateUser(user.id, { isActive: !user.isActive });
-            if (updated) {
-                res.json({ 
-                    success: true, 
-                    message: `User ${!user.isActive ? 'activated' : 'deactivated'}`,
-                    user: { ...user, isActive: !user.isActive }
-                });
-            } else {
-                res.json({ success: false, message: 'Failed to update user' });
-            }
-        } else {
-            res.json({ success: false, message: 'User not found' });
-        }
-    } catch (error) {
-        console.error('Error toggling user:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ GET BOT INSTANCES API
-app.get('/api/admin/instances', requireAdmin, async (req, res) => {
-    try {
-        const instances = await readBotInstances();
-        res.json({ success: true, instances: instances });
-    } catch (error) {
-        console.error('Error fetching instances:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ GET BOT INSTANCES WITH STATUS API
-app.get('/api/admin/instances-with-status', requireAdmin, async (req, res) => {
-    try {
-        const instances = await readBotInstances();
-        const instancesWithStatus = [];
-        
-        // Check status for each instance
-        for (const instance of instances) {
-            const status = await checkBotStatus(instance);
-            instancesWithStatus.push({
-                ...instance,
-                status: status
-            });
-        }
-        
-        res.json({ success: true, instances: instancesWithStatus });
-    } catch (error) {
-        console.error('Error fetching instances with status:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ PROMOTE USER API
-app.post('/api/admin/promote-user', requireSuperAdmin, async (req, res) => {
+// =============================
+// ✅ FIXED PROMOTE USER API
+// =============================
+app.post('/api/admin/promote-user', requireSuperAdmin, (req, res) => {
     try {
         const { userId, newRole } = req.body;
         
@@ -911,7 +729,7 @@ app.post('/api/admin/promote-user', requireSuperAdmin, async (req, res) => {
             return res.json({ success: false, message: 'Invalid role' });
         }
 
-        const users = await readUsers();
+        const users = readUsers();
         const user = users.find(u => u.id === userId);
         
         if (!user) {
@@ -923,16 +741,16 @@ app.post('/api/admin/promote-user', requireSuperAdmin, async (req, res) => {
             return res.json({ success: false, message: 'Cannot modify Super Admin' });
         }
 
-        const updated = await updateUser(user.id, { role: newRole });
+        user.role = newRole;
         
-        if (updated) {
+        if (writeUsers(users)) {
             res.json({ 
                 success: true, 
                 message: `User ${user.username} ${newRole === 'sub_admin' ? 'promoted to Sub Admin' : 'demoted to User'}`,
                 user: {
                     id: user.id,
                     username: user.username,
-                    role: newRole
+                    role: user.role
                 }
             });
         } else {
@@ -944,16 +762,99 @@ app.post('/api/admin/promote-user', requireSuperAdmin, async (req, res) => {
     }
 });
 
-// ✅ MANAGE USER BOTS API
-app.post('/api/admin/users/:userId/manage-bots', requireAdmin, async (req, res) => {
+// =============================
+// ✅ ADMIN APIS
+// =============================
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+    try {
+        const users = readUsers();
+        const safeUsers = users.map(user => ({
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            allocatedBots: user.allocatedBots || [],
+            createdAt: user.createdAt,
+            isActive: user.isActive
+        }));
+        res.json({ success: true, users: safeUsers });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// 🔥 MANAGE USER BOTS (Admin Only)
+app.post('/api/admin/users/:userId/bots', requireAdmin, (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { action, botId } = req.body; // 'add' or 'remove'
+        
+        const users = readUsers();
+        const instances = readBotInstances();
+        const user = users.find(u => u.id === userId);
+        
+        if (!user) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+
+        if (!user.allocatedBots) user.allocatedBots = [];
+
+        if (action === 'add') {
+            // Find unused bot
+            const unusedBot = instances.find(bot => 
+                !bot.allocatedTo && bot.enabled && bot.id !== botId
+            );
+            
+            if (!unusedBot) {
+                return res.json({ success: false, message: 'No unused bots available' });
+            }
+
+            // Add to user
+            user.allocatedBots.push(unusedBot.id);
+            
+            // Update bot allocation
+            const botIndex = instances.findIndex(bot => bot.id === unusedBot.id);
+            instances[botIndex].allocatedTo = user.username;
+            instances[botIndex].allocatedAt = new Date().toISOString();
+
+        } else if (action === 'remove' && botId) {
+            // Remove from user
+            user.allocatedBots = user.allocatedBots.filter(bot => bot !== botId);
+            
+            // Free the bot
+            const botIndex = instances.findIndex(bot => bot.id === botId);
+            if (botIndex !== -1) {
+                instances[botIndex].allocatedTo = null;
+                instances[botIndex].allocatedAt = null;
+            }
+        }
+
+        if (writeUsers(users) && writeBotInstances(instances)) {
+            res.json({ 
+                success: true, 
+                message: `User bots updated successfully`,
+                allocatedBots: user.allocatedBots
+            });
+        } else {
+            res.json({ success: false, message: 'Failed to update user bots' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// =============================
+// ✅ FIXED BOT MANAGEMENT WITH LIMITS
+// =============================
+app.post('/api/admin/users/:userId/manage-bots', requireAdmin, (req, res) => {
     try {
         const { userId } = req.params;
         const { action, botId } = req.body;
         
         console.log(`Bot management: ${action} for user ${userId}, bot: ${botId}`);
         
-        const users = await readUsers();
-        const instances = await readBotInstances();
+        const users = readUsers();
+        const instances = readBotInstances();
         const user = users.find(u => u.id === userId);
         
         if (!user) {
@@ -963,6 +864,12 @@ app.post('/api/admin/users/:userId/manage-bots', requireAdmin, async (req, res) 
         if (!user.allocatedBots) user.allocatedBots = [];
 
         if (action === 'add_bot') {
+            // 🔥 ADMIN CAN ADD UNLIMITED BOTS - But show warning after 3
+            if (user.allocatedBots.length >= 3) {
+                // Warning but allow admin to add more
+                console.log(`⚠️ User ${user.username} already has ${user.allocatedBots.length} bots (admin override)`);
+            }
+            
             // Check if bot exists and is available
             const availableBot = instances.find(bot => 
                 !bot.allocatedTo && bot.enabled && bot.id === botId
@@ -978,25 +885,27 @@ app.post('/api/admin/users/:userId/manage-bots', requireAdmin, async (req, res) 
             }
 
             // Add to user
-            const updatedBots = [...user.allocatedBots, availableBot.id];
-            await updateUser(user.id, { allocatedBots: updatedBots });
+            user.allocatedBots.push(availableBot.id);
             
             // Update bot allocation
-            await updateBotInstance(availableBot.id, {
-                allocatedTo: user.username,
-                allocatedAt: new Date().toISOString()
-            });
+            const botIndex = instances.findIndex(bot => bot.id === availableBot.id);
+            instances[botIndex].allocatedTo = user.username;
+            instances[botIndex].allocatedAt = new Date().toISOString();
 
-            const message = updatedBots.length > 3 ? 
-                `✅ Bot allocated to ${user.username} (Warning: User now has ${updatedBots.length} bots)` :
-                `✅ Bot allocated to ${user.username}`;
-                
-            res.json({ 
-                success: true, 
-                message: message,
-                allocatedBots: updatedBots,
-                currentCount: updatedBots.length
-            });
+            if (writeUsers(users) && writeBotInstances(instances)) {
+                const message = user.allocatedBots.length > 3 ? 
+                    `✅ Bot allocated to ${user.username} (Warning: User now has ${user.allocatedBots.length} bots)` :
+                    `✅ Bot allocated to ${user.username}`;
+                    
+                res.json({ 
+                    success: true, 
+                    message: message,
+                    allocatedBots: user.allocatedBots,
+                    currentCount: user.allocatedBots.length
+                });
+            } else {
+                res.json({ success: false, message: '❌ Failed to update databases' });
+            }
 
         } else if (action === 'remove_bot' && botId) {
             // Check if user has this bot
@@ -1005,21 +914,25 @@ app.post('/api/admin/users/:userId/manage-bots', requireAdmin, async (req, res) 
             }
             
             // Remove from user
-            const updatedBots = user.allocatedBots.filter(bot => bot !== botId);
-            await updateUser(user.id, { allocatedBots: updatedBots });
+            user.allocatedBots = user.allocatedBots.filter(bot => bot !== botId);
             
             // Free the bot
-            await updateBotInstance(botId, {
-                allocatedTo: null,
-                allocatedAt: null
-            });
+            const botIndex = instances.findIndex(bot => bot.id === botId);
+            if (botIndex !== -1) {
+                instances[botIndex].allocatedTo = null;
+                instances[botIndex].allocatedAt = null;
+            }
 
-            res.json({ 
-                success: true, 
-                message: `✅ Bot removed from ${user.username}`,
-                allocatedBots: updatedBots,
-                currentCount: updatedBots.length
-            });
+            if (writeUsers(users) && writeBotInstances(instances)) {
+                res.json({ 
+                    success: true, 
+                    message: `✅ Bot removed from ${user.username}`,
+                    allocatedBots: user.allocatedBots,
+                    currentCount: user.allocatedBots.length
+                });
+            } else {
+                res.json({ success: false, message: '❌ Failed to update databases' });
+            }
         } else {
             res.json({ success: false, message: '❌ Invalid action' });
         }
@@ -1029,23 +942,26 @@ app.post('/api/admin/users/:userId/manage-bots', requireAdmin, async (req, res) 
     }
 });
 
+// =============================
 // ✅ GET BOT STATISTICS API
-app.get('/api/admin/bot-statistics', requireAdmin, async (req, res) => {
+// =============================
+app.get('/api/admin/bot-statistics', requireAdmin, (req, res) => {
     try {
-        const stats = await getBotStatistics();
+        const stats = getBotStatistics();
         res.json({ success: true, statistics: stats });
     } catch (error) {
-        console.error('Error fetching bot statistics:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
+// =============================
 // ✅ GET USER BOT DETAILS API
-app.get('/api/admin/users/:userId/bot-details', requireAdmin, async (req, res) => {
+// =============================
+app.get('/api/admin/users/:userId/bot-details', requireAdmin, (req, res) => {
     try {
         const { userId } = req.params;
-        const users = await readUsers();
-        const instances = await readBotInstances();
+        const users = readUsers();
+        const instances = readBotInstances();
         
         const user = users.find(u => u.id === userId);
         if (!user) {
@@ -1071,17 +987,311 @@ app.get('/api/admin/users/:userId/bot-details', requireAdmin, async (req, res) =
             totalAllocated: userBots.length
         });
     } catch (error) {
-        console.error('Error fetching user bot details:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
+// =============================
+// ✅ BULK ADD BOT INSTANCES
+// =============================
+app.post('/api/admin/bulk-add-instances', requireAdmin, (req, res) => {
+    try {
+        const { urls } = req.body; // Array of URLs
+        
+        if (!urls || !Array.isArray(urls) || urls.length === 0) {
+            return res.json({ success: false, message: 'URLs array required' });
+        }
+
+        const instances = readBotInstances();
+        const results = {
+            added: 0,
+            failed: 0,
+            duplicates: 0,
+            details: []
+        };
+
+        urls.forEach(url => {
+            const trimmedUrl = url.trim();
+            
+            if (!trimmedUrl) {
+                results.failed++;
+                results.details.push({ url: trimmedUrl, status: 'empty', error: 'Empty URL' });
+                return;
+            }
+
+            // Validate URL
+            try {
+                new URL(trimmedUrl);
+            } catch (error) {
+                results.failed++;
+                results.details.push({ url: trimmedUrl, status: 'invalid', error: 'Invalid URL' });
+                return;
+            }
+
+            // Check for duplicates
+            if (instances.find(inst => inst.url === trimmedUrl)) {
+                results.duplicates++;
+                results.details.push({ url: trimmedUrl, status: 'duplicate', error: 'Already exists' });
+                return;
+            }
+
+            // Add instance
+            const newInstance = { 
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                url: trimmedUrl, 
+                addedAt: new Date().toISOString(), 
+                enabled: true,
+                allocatedTo: null,
+                allocatedAt: null
+            };
+
+            instances.push(newInstance);
+            results.added++;
+            results.details.push({ url: trimmedUrl, status: 'added', id: newInstance.id });
+        });
+
+        if (writeBotInstances(instances)) {
+            res.json({ 
+                success: true, 
+                message: `Bulk add completed: ${results.added} added, ${results.duplicates} duplicates, ${results.failed} failed`,
+                results: results
+            });
+        } else {
+            res.json({ success: false, message: 'Failed to save instances' });
+        }
+    } catch (error) {
+        console.error('Bulk add error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.post('/api/admin/generate-key', requireAdmin, (req, res) => {
+    try {
+        const { note } = req.body;
+        const key = generateRegistrationKey();
+        const keys = readRegistrationKeys();
+        
+        keys.push({
+            key: key,
+            note: note || 'Generated by admin',
+            createdAt: new Date().toISOString(),
+            used: false,
+            usedBy: null,
+            usedAt: null
+        });
+        
+        if (writeRegistrationKeys(keys)) {
+            res.json({ success: true, key: key, message: 'Registration key generated' });
+        } else {
+            res.json({ success: false, message: 'Failed to generate key' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.get('/api/admin/keys', requireAdmin, (req, res) => {
+    try {
+        const keys = readRegistrationKeys();
+        res.json({ success: true, keys: keys });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.delete('/api/admin/keys/:key', requireAdmin, (req, res) => {
+    try {
+        const { key } = req.params;
+        let keys = readRegistrationKeys();
+        const initialLength = keys.length;
+        
+        keys = keys.filter(k => k.key !== key);
+        
+        if (keys.length < initialLength) {
+            if (writeRegistrationKeys(keys)) {
+                res.json({ success: true, message: 'Key deleted successfully' });
+            } else {
+                res.json({ success: false, message: 'Failed to delete key' });
+            }
+        } else {
+            res.json({ success: false, message: 'Key not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.post('/api/admin/users/:id/toggle', requireAdmin, (req, res) => {
+    try {
+        const { id } = req.params;
+        const users = readUsers();
+        const user = users.find(u => u.id === id);
+        
+        if (user) {
+            user.isActive = !user.isActive;
+            if (writeUsers(users)) {
+                res.json({ 
+                    success: true, 
+                    message: `User ${user.isActive ? 'activated' : 'deactivated'}`,
+                    user: user
+                });
+            } else {
+                res.json({ success: false, message: 'Failed to update user' });
+            }
+        } else {
+            res.json({ success: false, message: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// =============================
+// ✅ ADMIN BOT INSTANCES MANAGEMENT APIS
+// =============================
+app.get('/api/admin/instances', requireAdmin, (req, res) => {
+    try {
+        const instances = readBotInstances();
+        res.json({ success: true, instances: instances });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// ✅ UPDATE BOT INSTANCES WITH STATUS
+app.get('/api/admin/instances-with-status', requireAdmin, async (req, res) => {
+    try {
+        const instances = readBotInstances();
+        const instancesWithStatus = [];
+        
+        // Check status for each instance
+        for (const instance of instances) {
+            const status = await checkBotStatus(instance);
+            instancesWithStatus.push({
+                ...instance,
+                status: status
+            });
+        }
+        
+        res.json({ success: true, instances: instancesWithStatus });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// ✅ FIXED ADD BOT INSTANCE API - Auto distribute after adding
+app.post('/api/admin/instances', requireAdmin, (req, res) => {
+    try {
+        const { url } = req.body;
+        
+        if (!url) {
+            return res.json({ success: false, message: 'URL required' });
+        }
+        
+        try {
+            new URL(url);
+        } catch (error) {
+            return res.json({ success: false, message: 'Invalid URL' });
+        }
+
+        const instances = readBotInstances();
+        
+        if (instances.find(inst => inst.url === url)) {
+            return res.json({ success: false, message: 'Instance already exists' });
+        }
+
+        const newInstance = { 
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+            url: url.trim(), 
+            addedAt: new Date().toISOString(), 
+            enabled: true,
+            allocatedTo: null,
+            allocatedAt: null
+        };
+
+        instances.push(newInstance);
+        
+        if (writeBotInstances(instances)) {
+            console.log(`✅ New bot instance added: ${newInstance.url}`);
+            
+            // 🔥 AUTO DISTRIBUTE TO USERS AFTER ADDING NEW BOT
+            const distributionResult = autoDistributeBotsToAllUsers();
+            
+            let message = 'Bot instance added successfully';
+            if (distributionResult.assigned > 0) {
+                message += ` and ${distributionResult.assigned} bots assigned to users`;
+            }
+            
+            res.json({ 
+                success: true, 
+                message: message,
+                instance: newInstance,
+                distribution: distributionResult
+            });
+        } else {
+            res.json({ success: false, message: 'Failed to add instance' });
+        }
+    } catch (error) {
+        console.log('Error adding instance:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// ✅ FIXED DELETE BOT INSTANCE - Proper cleanup
+app.delete('/api/admin/instances/:id', requireAdmin, (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log(`🗑️ Deleting bot instance: ${id}`);
+        
+        let instances = readBotInstances();
+        const users = readUsers();
+        
+        const instanceToDelete = instances.find(inst => inst.id === id);
+        
+        if (!instanceToDelete) {
+            return res.json({ success: false, message: '❌ Instance not found' });
+        }
+        
+        // 1. Remove from ALL users' allocatedBots
+        let usersUpdated = 0;
+        users.forEach(user => {
+            if (user.allocatedBots && user.allocatedBots.includes(id)) {
+                user.allocatedBots = user.allocatedBots.filter(botId => botId !== id);
+                usersUpdated++;
+                console.log(`✅ Removed bot ${id} from user ${user.username}`);
+            }
+        });
+        
+        // 2. Remove from instances
+        instances = instances.filter(inst => inst.id !== id);
+        
+        // 3. Save both files
+        const instancesSaved = writeBotInstances(instances);
+        const usersSaved = writeUsers(users);
+        
+        if (instancesSaved && usersSaved) {
+            console.log(`✅ Bot instance ${id} deleted successfully. Removed from ${usersUpdated} users.`);
+            res.json({ 
+                success: true, 
+                message: `✅ Bot instance deleted successfully. Removed from ${usersUpdated} users.`
+            });
+        } else {
+            res.json({ success: false, message: '❌ Failed to delete instance' });
+        }
+    } catch (error) {
+        console.error('❌ Delete instance error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// =============================
 // ✅ MANUAL BOT DISTRIBUTION API
-app.post('/api/admin/distribute-bots', requireAdmin, async (req, res) => {
+// =============================
+app.post('/api/admin/distribute-bots', requireAdmin, (req, res) => {
     try {
         console.log('🎯 Manual bot distribution requested');
         
-        const distributionResult = await autoDistributeBotsToAllUsers();
+        const distributionResult = autoDistributeBotsToAllUsers();
         
         res.json({
             success: distributionResult.success,
@@ -1095,11 +1305,13 @@ app.post('/api/admin/distribute-bots', requireAdmin, async (req, res) => {
     }
 });
 
+// =============================
 // ✅ GET BOT DISTRIBUTION STATUS
-app.get('/api/admin/bot-distribution-status', requireAdmin, async (req, res) => {
+// =============================
+app.get('/api/admin/bot-distribution-status', requireAdmin, (req, res) => {
     try {
-        const users = await readUsers();
-        const instances = await readBotInstances();
+        const users = readUsers();
+        const instances = readBotInstances();
         
         const availableBots = instances.filter(bot => !bot.allocatedTo && bot.enabled).length;
         const totalBots = instances.filter(bot => bot.enabled).length;
@@ -1125,15 +1337,23 @@ app.get('/api/admin/bot-distribution-status', requireAdmin, async (req, res) => 
             }
         });
     } catch (error) {
-        console.error('Error fetching distribution status:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
+// =============================
 // ✅ USER INFO API
-app.get('/api/user-info', requireAuth, async (req, res) => {
+// =============================
+app.get('/api/user-info', requireAuth, (req, res) => {
     try {
-        const users = await readUsers();
+        const tokens = readTokens();
+        const userToken = tokens.find(t => 
+            t.username === req.session.user.username && 
+            t.isActive && 
+            new Date(t.expiresAt) > new Date()
+        );
+        
+        const users = readUsers();
         const user = users.find(u => u.username === req.session.user.username);
         
         res.json({
@@ -1144,15 +1364,16 @@ app.get('/api/user-info', requireAuth, async (req, res) => {
                 role: req.session.user.role,
                 allocatedBots: user?.allocatedBots || []
             },
-            token: generateToken()
+            token: userToken ? userToken.token : null
         });
     } catch (error) {
-        console.error('Error fetching user info:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
+// =============================
 // ✅ TOKEN VERIFY API
+// =============================
 app.post('/api/verify-token', (req, res) => {
     try {
         const { token } = req.body;
@@ -1161,24 +1382,38 @@ app.post('/api/verify-token', (req, res) => {
             return res.json({ success: false, valid: false });
         }
 
-        // For now, we'll accept any token since we're not storing them
-        // You can implement proper token validation if needed
-        res.json({ 
-            success: true, 
-            valid: true,
-            username: 'user',
-            role: 'user'
-        });
+        const tokens = readTokens();
+        const validToken = tokens.find(t => 
+            t.token === token && 
+            t.isActive && 
+            new Date(t.expiresAt) > new Date()
+        );
+
+        if (validToken) {
+            const users = readUsers();
+            const user = users.find(u => u.username === validToken.username);
+            
+            res.json({ 
+                success: true, 
+                valid: true, 
+                username: validToken.username,
+                role: user?.role || 'user'
+            });
+        } else {
+            res.json({ success: true, valid: false });
+        }
     } catch (error) {
         res.json({ success: false, valid: false });
     }
 });
 
+// =============================
 // ✅ GET USER'S ALLOCATED BOT INSTANCES
-app.get('/api/user-bot-instances', requireAuth, async (req, res) => {
+// =============================
+app.get('/api/user-bot-instances', requireAuth, (req, res) => {
     try {
-        const users = await readUsers();
-        const instances = await readBotInstances();
+        const users = readUsers();
+        const instances = readBotInstances();
         const user = users.find(u => u.username === req.session.user.username);
         
         if (!user) {
@@ -1196,13 +1431,14 @@ app.get('/api/user-bot-instances', requireAuth, async (req, res) => {
             totalAllocated: user.allocatedBots?.length || 0
         });
     } catch (error) {
-        console.error('Error fetching user bot instances:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// ✅ GET BOT INSTANCES FOR MAIN CONTROLLER
-app.get('/api/bot-instances', async (req, res) => {
+// =============================
+// ✅ GET BOT INSTANCES FOR MAIN CONTROLLER (User specific)
+// =============================
+app.get('/api/bot-instances', (req, res) => {
     try {
         const token = req.query.token;
         
@@ -1210,69 +1446,77 @@ app.get('/api/bot-instances', async (req, res) => {
             return res.json({ success: false, message: 'Token required' });
         }
 
-        // For now, we accept any token
-        // You can implement proper token validation if needed
+        // Verify token
+        const tokens = readTokens();
+        const validToken = tokens.find(t => 
+            t.token === token && 
+            t.isActive && 
+            new Date(t.expiresAt) > new Date()
+        );
 
-        const users = await readUsers();
-        const instances = await readBotInstances();
+        if (!validToken) {
+            return res.json({ success: false, message: 'Invalid token' });
+        }
+
+        const users = readUsers();
+        const instances = readBotInstances();
+        const user = users.find(u => u.username === validToken.username);
         
-        // Return all available instances for now
-        // You can modify this to return user-specific instances
+        if (!user) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+
+        // 🔥 RETURN ONLY USER'S ALLOCATED BOTS
+        const userInstances = instances.filter(instance => 
+            user.allocatedBots?.includes(instance.id)
+        );
 
         res.json({ 
             success: true, 
-            instances: instances,
-            userBots: []
+            instances: userInstances,
+            userBots: user.allocatedBots || []
         });
     } catch (error) {
-        console.error('Error fetching bot instances:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
 // =============================
-// ✅ INITIALIZE FIREBASE DATA
+// ✅ INIT SERVER
 // =============================
-async function initializeFirebaseData() {
-    try {
-        // Check if super admin exists
-        const users = await readUsers();
-        const superAdminExists = users.find(u => u.username === SUPER_ADMIN.username);
-        
-        if (!superAdminExists) {
-            const hashedPassword = await bcrypt.hash(SUPER_ADMIN.password, 10);
-            const superAdminUser = {
-                id: 'super-admin',
-                username: SUPER_ADMIN.username,
-                email: 'rahmttollahn@gmail.com',
-                password: hashedPassword,
-                role: 'super_admin',
-                allocatedBots: [],
-                createdAt: new Date().toISOString(),
-                isActive: true
-            };
-            
-            await addUser(superAdminUser);
-            console.log('👑 SUPER ADMIN user created in Firebase!');
-        }
-        
-        console.log('✅ Firebase data initialized successfully');
-    } catch (error) {
-        console.error('❌ Error initializing Firebase data:', error);
-    }
+initializeFiles();
+
+// Create super admin user if not exists
+const users = readUsers();
+if (!users.find(u => u.username === SUPER_ADMIN.username)) {
+    bcrypt.hash(SUPER_ADMIN.password, 10).then(hashedPassword => {
+        users.push({
+            id: 'super-admin',
+            username: SUPER_ADMIN.username,
+            email: 'rahmttollahn@gmail.com',
+            password: hashedPassword,
+            role: 'super_admin',
+            allocatedBots: [], // Super admin doesn't need bots
+            createdAt: new Date().toISOString(),
+            isActive: true
+        });
+        writeUsers(users);
+        console.log('👑 SUPER ADMIN user created automatically!');
+    });
 }
 
-// =============================
-// ✅ START SERVER
-// =============================
-app.listen(PORT, '0.0.0.0', async () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔐 Auth Server running on port ${PORT}`);
     console.log(`👑 Super Admin: ${SUPER_ADMIN.username}`);
     console.log(`🎯 Main Controller: ${MAIN_CONTROLLER_URL}`);
-    console.log(`🔥 Database: Firebase Firestore`);
-    console.log(`🚀 Performance: Enhanced with real-time database`);
-    console.log(`📊 Collections: users, botInstances, registrationKeys`);
-    
-    // Initialize Firebase data
-    await initializeFirebaseData();
+    console.log(`🤖 Bot Allocation System: Enabled`);
+    console.log(`🚀 Smart Dashboard: Active`);
+    console.log(`📊 Bot Statistics API: Available`);
+    console.log(`🔧 Bot Management API: Enhanced`);
+    console.log(`🔄 Redirect Loops: FIXED`);
+    console.log(`📦 Bulk Bot Addition: Available`);
+    console.log(`🎯 Auto Bot Distribution: ACTIVE`);
+    console.log(`🔍 Bot Status Checking: ENABLED`);
+    console.log(`🗑️ Bot Delete Cleanup: FIXED`);
+    console.log(`⚡ Bot Limit System: IMPLEMENTED`);
 });
