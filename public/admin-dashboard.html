@@ -512,7 +512,7 @@
                     
                     // Update controller button
                     const controllerBtn = document.getElementById('controllerBtn');
-                    controllerBtn.href = `https://tiktok-main-controller-6ro1.onrender.com/dashboard?token=${data.token}`;
+                    controllerBtn.href = `https://tiktok-main-controller-19o2.onrender.com/dashboard?token=${data.token}`;
                 }
             } catch (error) {
                 showMessage('Error loading user info', 'error');
@@ -576,7 +576,7 @@
         function goToController() {
             const token = localStorage.getItem('userToken');
             if (token) {
-                window.location.href = `https://tiktok-main-controller-6ro1.onrender.com/dashboard?token=${token}`;
+                window.location.href = `https://tiktok-main-controller-19o2.onrender.com/dashboard?token=${token}`;
             } else {
                 showMessage('Please login again', 'error');
             }
@@ -621,7 +621,7 @@
             showMessage('👑 Welcome to Admin Dashboard!', 'success');
             
             // Set controller URL
-            document.getElementById('controllerUrl').textContent = 'tiktok-main-controller-6ro1.onrender.com';
+            document.getElementById('controllerUrl').textContent = 'tiktok-main-controller-19o2.onrender.com';
             
             // Mobile responsive checks
             if (window.innerWidth <= 768) {
