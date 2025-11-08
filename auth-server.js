@@ -28,7 +28,7 @@ app.use(session({
 }));
 
 // Main Controller URL
-const MAIN_CONTROLLER_URL = 'https://tiktok-main-controller-6ro1.onrender.com';
+const MAIN_CONTROLLER_URL = 'https://tiktok-main-controller-19o2.onrender.com';
 
 // 🔥 SUPER ADMIN Configuration (ONLY YOU)
 const SUPER_ADMIN = {
